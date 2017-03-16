@@ -6,9 +6,9 @@ import com.opensymphony.xwork2.config.providers.XmlConfigurationProvider;
 import com.opensymphony.xwork2.interceptor.ValidationAware;
 import com.opensymphony.xwork2.util.ValueStack;
 import com.opensymphony.xwork2.validator.validators.DoubleRangeFieldValidator;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -21,13 +21,14 @@ import java.util.Map;
  */
 public class DoubleRangeValidatorTest extends XWorkTestCase {
     private DoubleRangeFieldValidator val;
+    private TextProviderFactory tpf;
 
     public void testRangeValidationWithError() throws Exception {
         //Explicitly set an out-of-range double for DoubleRangeValidatorTest
         Map<String, Object> context = new HashMap<>();
         HashMap<String, Object> params = new HashMap<>();
         params.put("percentage", 100.0123d);
-        context.put(ActionContext.PARAMETERS, params);
+        context.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ACTION_NAME, null, context);
         proxy.execute();
@@ -48,7 +49,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
         Map<String, Object> context = new HashMap<>();
         HashMap<String, Object> params = new HashMap<>();
         params.put("percentage", 1.234567d);
-        context.put(ActionContext.PARAMETERS, params);
+        context.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", "percentage", null, context);
         proxy.execute();
@@ -107,7 +108,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
         val.setMaxInclusive(10d);
         val.setFieldName("name");
 
-        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport());
+        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport(), tpf);
         val.setValidatorContext(context);
 
         val.validate(prod);
@@ -127,7 +128,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
 
         val.setFieldName("price");
 
-        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport());
+        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport(), tpf);
         val.setValidatorContext(context);
 
         val.setMaxInclusive(9.95d);
@@ -152,7 +153,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
 
         val.setFieldName("price");
 
-        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport());
+        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport(), tpf);
         val.setValidatorContext(context);
 
         val.setMinInclusive(9.95d);
@@ -170,7 +171,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
 
         val.setFieldName("price");
 
-        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport());
+        DelegatingValidatorContext context = new DelegatingValidatorContext(new ValidationAwareSupport(), tpf);
         val.setValidatorContext(context);
 
         val.setMinInclusive(9.95d);
@@ -183,7 +184,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
         Map<String, Object> context = new HashMap<>();
         HashMap<String, Object> params = new HashMap<>();
         params.put("percentage", 100.0123d);
-        context.put(ActionContext.PARAMETERS, params);
+        context.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.EXPRESSION_VALIDATION_ACTION, null, context);
         proxy.execute();
@@ -220,7 +221,7 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
         val.setFieldName("price");
         val.setDefaultMessage("Price is wrong!");
 
-        DelegatingValidatorContext context = new DelegatingValidatorContext(action);
+        DelegatingValidatorContext context = new DelegatingValidatorContext(action, tpf);
         val.setValidatorContext(context);
 
         val.validate(action);
@@ -235,7 +236,8 @@ public class DoubleRangeValidatorTest extends XWorkTestCase {
         loadConfigurationProviders(provider,  new MockConfigurationProvider());
         val = new DoubleRangeFieldValidator();
         val.setValueStack(ActionContext.getContext().getValueStack());
-        ActionContext.getContext().setParameters(new HashMap<String, Object>());
+        ActionContext.getContext().setParameters(HttpParameters.create().build());
+        tpf = container.inject(TextProviderFactory.class);
     }
 
     @Override

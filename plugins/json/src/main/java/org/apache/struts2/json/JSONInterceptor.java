@@ -58,7 +58,7 @@ public class JSONInterceptor extends AbstractInterceptor {
     private boolean enableGZIP = false;
     private boolean wrapWithComments;
     private boolean prefix;
-    private String defaultEncoding = "ISO-8859-1";
+    private String defaultEncoding = "UTF-8";
     private boolean ignoreHierarchy = true;
     private String root;
     private List<Pattern> excludeProperties;
@@ -70,18 +70,16 @@ public class JSONInterceptor extends AbstractInterceptor {
     private boolean noCache = false;
     private boolean excludeNullProperties;
     private String callbackParameter;
-    private String contentType;
+    private String jsonContentType = "application/json";
+    private String jsonRpcContentType = "application/json-rpc";
 
     @SuppressWarnings("unchecked")
     public String intercept(ActionInvocation invocation) throws Exception {
         HttpServletRequest request = ServletActionContext.getRequest();
         HttpServletResponse response = ServletActionContext.getResponse();
-        String contentType = request.getHeader("content-type");
-        if (contentType != null) {
-            int iSemicolonIdx;
-            if ((iSemicolonIdx = contentType.indexOf(";")) != -1)
-                contentType = contentType.substring(0, iSemicolonIdx);
-        }
+        
+        String requestContentType = readContentType(request);
+        String requestContentTypeEncoding = readContentTypeEncoding(request);
 
         Object rootObject = null;
         final ValueStack stack = invocation.getStack();
@@ -93,7 +91,7 @@ public class JSONInterceptor extends AbstractInterceptor {
             }
         }
 
-        if ((contentType != null) && contentType.equalsIgnoreCase("application/json")) {
+        if (jsonContentType.equalsIgnoreCase(requestContentType)) {
             // load JSON object
             Object obj = JSONUtil.deserialize(request.getReader());
 
@@ -133,7 +131,7 @@ public class JSONInterceptor extends AbstractInterceptor {
                 LOG.error("Unable to deserialize JSON object from request");
                 throw new JSONException("Unable to deserialize JSON object from request");
             }
-        } else if ((contentType != null) && contentType.equalsIgnoreCase("application/json-rpc")) {
+        } else if (jsonRpcContentType.equalsIgnoreCase(requestContentType)) {
             Object result;
             if (this.enableSMD) {
                 // load JSON object
@@ -176,15 +174,39 @@ public class JSONInterceptor extends AbstractInterceptor {
                     ignoreHierarchy, excludeNullProperties);
             json = addCallbackIfApplicable(request, json);
             boolean writeGzip = enableGZIP && JSONUtil.isGzipInRequest(request);
-            JSONUtil.writeJSONToResponse(new SerializationParams(response, this.defaultEncoding,
+            JSONUtil.writeJSONToResponse(new SerializationParams(response, requestContentTypeEncoding,
                     this.wrapWithComments, json, true, writeGzip, noCache, -1, -1, prefix, "application/json"));
 
             return Action.NONE;
         } else {
-            LOG.debug("Content type must be 'application/json' or 'application/json-rpc'. Ignoring request with content type ", contentType);
+            LOG.debug("Accept header parameter must be '{}' or '{}'. Ignoring request with Content Type '{}'", jsonContentType, jsonRpcContentType, requestContentType);
         }
 
         return invocation.invoke();
+    }
+
+    protected String readContentType(HttpServletRequest request) {
+        String contentType = request.getHeader("Content-Type");
+        LOG.debug("Content Type from request: {}", contentType);
+
+        if (contentType != null && contentType.contains(";")) {
+            contentType = contentType.substring(0, contentType.indexOf(";")).trim();
+        }
+        return contentType;
+    }
+
+    protected String readContentTypeEncoding(HttpServletRequest request) {
+        String contentTypeEncoding = request.getHeader("Content-Type");
+        LOG.debug("Content Type encoding from request: {}", contentTypeEncoding);
+
+        if (contentTypeEncoding != null && contentTypeEncoding.contains(";charset=")) {
+            contentTypeEncoding = contentTypeEncoding.substring(contentTypeEncoding.indexOf(";charset=") + ";charset=".length()).trim();
+        } else {
+            contentTypeEncoding = defaultEncoding;
+        }
+
+        LOG.debug("Content Type encoding to be used in de-serialisation: {}", contentTypeEncoding);
+        return contentTypeEncoding;
     }
 
     @SuppressWarnings("unchecked")
@@ -535,7 +557,11 @@ public class JSONInterceptor extends AbstractInterceptor {
         this.prefix = prefix;
     }
 
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
+    public void setJsonContentType(String jsonContentType) {
+        this.jsonContentType = jsonContentType;
+    }
+
+    public void setJsonRpcContentType(String jsonRpcContentType) {
+        this.jsonRpcContentType = jsonRpcContentType;
     }
 }

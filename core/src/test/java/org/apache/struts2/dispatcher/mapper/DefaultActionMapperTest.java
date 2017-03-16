@@ -29,7 +29,9 @@ import com.opensymphony.xwork2.config.Configuration;
 import com.opensymphony.xwork2.config.ConfigurationManager;
 import com.opensymphony.xwork2.config.entities.PackageConfig;
 import com.opensymphony.xwork2.config.impl.DefaultConfiguration;
+import com.opensymphony.xwork2.inject.Container;
 import org.apache.struts2.ServletActionContext;
+import org.apache.struts2.StrutsException;
 import org.apache.struts2.StrutsInternalTestCase;
 import org.apache.struts2.result.StrutsResultSupport;
 import org.apache.struts2.views.jsp.StrutsMockHttpServletRequest;
@@ -60,7 +62,7 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
         PackageConfig pkg2 = new PackageConfig.Builder("my").namespace("/my").build();
         config.addPackageConfig("mvns", pkg);
         config.addPackageConfig("my", pkg2);
-        configManager = new ConfigurationManager() {
+        configManager = new ConfigurationManager(Container.DEFAULT_NAME) {
             public Configuration getConfiguration() {
                 return config;
             }
@@ -138,7 +140,7 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
         config.addPackageConfig("mvns", pkg);
         config.addPackageConfig("my", pkg2);
         config.addPackageConfig("root", pkg3);
-        configManager = new ConfigurationManager() {
+        configManager = new ConfigurationManager(Container.DEFAULT_NAME) {
             public Configuration getConfiguration() {
                 return config;
             }
@@ -162,8 +164,8 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
 
     public void testGetMappingWithNamespaceSlash() throws Exception {
 
-        req.setupGetRequestURI("/my.hh/abc.action");
-        req.setupGetServletPath("/my.hh/abc.action");
+        req.setupGetRequestURI("/my-hh/abc.action");
+        req.setupGetServletPath("/my-hh/abc.action");
         req.setupGetAttribute(null);
         req.addExpectedGetAttributeName("javax.servlet.include.servlet_path");
 
@@ -180,7 +182,7 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
         mapping = mapper.getMapping(req, configManager);
 
         assertEquals("", mapping.getNamespace());
-        assertEquals("my.hh/abc", mapping.getName());
+        assertEquals("my-hh/abc", mapping.getName());
     }
 
     public void testGetMappingWithUnknownNamespace() throws Exception {
@@ -845,13 +847,13 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
         assertEquals(actionName, mapper.cleanupActionName(actionName));
 
         actionName = "${action}";
-        assertEquals("action", mapper.cleanupActionName(actionName));
+        assertEquals(mapper.defaultActionName, mapper.cleanupActionName(actionName));
 
         actionName = "${${%{action}}}";
-        assertEquals("action", mapper.cleanupActionName(actionName));
+        assertEquals(mapper.defaultActionName, mapper.cleanupActionName(actionName));
 
         actionName = "${#foo='action',#foo}";
-        assertEquals("fooactionfoo", mapper.cleanupActionName(actionName));
+        assertEquals(mapper.defaultActionName, mapper.cleanupActionName(actionName));
 
         actionName = "test-action";
         assertEquals("test-action", mapper.cleanupActionName(actionName));
@@ -861,6 +863,21 @@ public class DefaultActionMapperTest extends StrutsInternalTestCase {
 
         actionName = "test!bar.action";
         assertEquals("test!bar.action", mapper.cleanupActionName(actionName));
+    }
+
+    public void testAllowedMethodNames() throws Exception {
+        DefaultActionMapper mapper = new DefaultActionMapper();
+
+        assertEquals("", mapper.cleanupMethodName(""));
+        assertEquals("test", mapper.cleanupMethodName("test"));
+        assertEquals("test_method", mapper.cleanupMethodName("test_method"));
+        assertEquals("_test", mapper.cleanupMethodName("_test"));
+        assertEquals("test1", mapper.cleanupMethodName("test1"));
+
+        assertEquals(mapper.defaultMethodName, mapper.cleanupMethodName("2test"));
+        assertEquals(mapper.defaultMethodName, mapper.cleanupMethodName("%{exp}"));
+        assertEquals(mapper.defaultMethodName, mapper.cleanupMethodName("${%{foo}}"));
+        assertEquals(mapper.defaultMethodName, mapper.cleanupMethodName("${#foo='method',#foo}"));
     }
 
 }

@@ -15,7 +15,6 @@
  */
 package com.opensymphony.xwork2.util;
 
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 

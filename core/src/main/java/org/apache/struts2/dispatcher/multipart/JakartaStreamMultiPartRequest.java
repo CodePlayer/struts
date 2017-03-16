@@ -1,8 +1,5 @@
 package org.apache.struts2.dispatcher.multipart;
 
-import com.opensymphony.xwork2.LocaleProvider;
-import com.opensymphony.xwork2.inject.Inject;
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadBase;
@@ -11,7 +8,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.struts2.StrutsConstants;
+import org.apache.struts2.dispatcher.LocalizedMessage;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
@@ -26,14 +23,9 @@ import java.util.*;
  * @author Chris Cranford
  * @since 2.3.18
  */
-public class JakartaStreamMultiPartRequest implements MultiPartRequest {
+public class JakartaStreamMultiPartRequest extends AbstractMultiPartRequest {
 
     static final Logger LOG = LogManager.getLogger(JakartaStreamMultiPartRequest.class);
-
-    /**
-     * Defines the internal buffer size used during streaming operations.
-     */
-    private static final int BUFFER_SIZE = 10240;
 
     /**
      * Map between file fields and file data.
@@ -44,55 +36,6 @@ public class JakartaStreamMultiPartRequest implements MultiPartRequest {
      * Map between non-file fields and values.
      */
     private Map<String, List<String>> parameters = new HashMap<>();
-
-    /**
-     * Internal list of raised errors to be passed to the the Struts2 framework.
-     */
-    private List<String> errors = new ArrayList<>();
-
-    /**
-     * Internal list of non-critical messages to be passed to the Struts2 framework.
-     */
-    private List<String> messages = new ArrayList<>();
-
-    /**
-     * Specifies the maximum size of the entire request.
-     */
-    private Long maxSize;
-
-    /**
-     * Specifies the buffer size to use during streaming.
-     */
-    private int bufferSize = BUFFER_SIZE;
-
-    /**
-     * Localization to be used regarding errors.
-     */
-    private Locale defaultLocale = Locale.ENGLISH;
-
-    /**
-     * @param maxSize Injects the Struts multiple part maximum size.
-     */
-    @Inject(StrutsConstants.STRUTS_MULTIPART_MAXSIZE)
-    public void setMaxSize(String maxSize) {
-        this.maxSize = Long.parseLong(maxSize);
-    }
-
-    /**
-     * @param bufferSize Sets the buffer size to be used.
-     */
-    @Inject(value = StrutsConstants.STRUTS_MULTIPART_BUFFERSIZE, required = false)
-    public void setBufferSize(String bufferSize) {
-        this.bufferSize = Integer.parseInt(bufferSize);
-    }
-
-    /**
-     * @param provider Injects the Struts locale provider.
-     */
-    @Inject
-    public void setLocaleProvider(LocaleProvider provider) {
-        defaultLocale = provider.getLocale();
-    }
 
     /* (non-Javadoc)
      * @see org.apache.struts2.dispatcher.multipart.MultiPartRequest#cleanUp()
@@ -128,36 +71,20 @@ public class JakartaStreamMultiPartRequest implements MultiPartRequest {
     }
 
     /* (non-Javadoc)
-     * @see org.apache.struts2.dispatcher.multipart.MultiPartRequest#getErrors()
-     */
-    public List<String> getErrors() {
-        return errors;
-    }
-
-    /**
-     * Allows interceptor to fetch non-critical messages that can be passed to the action.
-     *
-     * @return list of string messages
-     */
-    public List<String> getMesssages() {
-        return messages;
-    }
-
-    /* (non-Javadoc)
      * @see org.apache.struts2.dispatcher.multipart.MultiPartRequest#getFile(java.lang.String)
      */
-    public File[] getFile(String fieldName) {
+    public UploadedFile[] getFile(String fieldName) {
         List<FileInfo> infos = fileInfos.get(fieldName);
         if (infos == null) {
             return null;
         }
 
-        List<File> files = new ArrayList<>(infos.size());
+        List<UploadedFile> files = new ArrayList<>(infos.size());
         for (FileInfo fileInfo : infos) {
-            files.add(fileInfo.getFile());
+            files.add(new StrutsUploadedFile(fileInfo.getFile()));
         }
 
-        return files.toArray(new File[files.size()]);
+        return files.toArray(new UploadedFile[files.size()]);
     }
 
     /* (non-Javadoc)
@@ -239,20 +166,10 @@ public class JakartaStreamMultiPartRequest implements MultiPartRequest {
             processUpload(request, saveDir);
         } catch (Exception e) {
             LOG.warn("Error occurred during parsing of multi part request", e);
-            String errorMessage = buildErrorMessage(e, new Object[]{});
+            LocalizedMessage errorMessage = buildErrorMessage(e, new Object[]{});
             if (!errors.contains(errorMessage)) {
                 errors.add(errorMessage);
             }
-        }
-    }
-
-    /**
-      * @param request Inspect the servlet request and set the locale if one wasn't provided by
-     * the Struts2 framework.
-     */
-    protected void setLocale(HttpServletRequest request) {
-        if (defaultLocale == null) {
-            defaultLocale = request.getLocale();
         }
     }
 
@@ -349,7 +266,7 @@ public class JakartaStreamMultiPartRequest implements MultiPartRequest {
     private void addFileSkippedError(String fileName, HttpServletRequest request) {
         String exceptionMessage = "Skipped file " + fileName + "; request size limit exceeded.";
         FileSizeLimitExceededException exception = new FileUploadBase.FileSizeLimitExceededException(exceptionMessage, getRequestSize(request), maxSize);
-        String message = buildErrorMessage(exception, new Object[]{fileName, getRequestSize(request), maxSize});
+        LocalizedMessage message = buildErrorMessage(exception, new Object[]{fileName, getRequestSize(request), maxSize});
         if (!errors.contains(message)) {
             errors.add(message);
         }
@@ -498,32 +415,6 @@ public class JakartaStreamMultiPartRequest implements MultiPartRequest {
             fileName = fileName.substring(backwardSlash + 1, fileName.length());
         }
         return fileName;
-    }
-
-    /**
-     * Build error message.
-     *
-     * @param e the Throwable/Exception
-     * @param args arguments
-     * @return error message
-     */
-    private String buildErrorMessage(Throwable e, Object[] args) {
-        String errorKey = "struts.message.upload.error." + e.getClass().getSimpleName();
-        LOG.debug("Preparing error message for key: [{}]", errorKey);
-        return LocalizedTextUtil.findText(this.getClass(), errorKey, defaultLocale, e.getMessage(), args);
-    }
-
-    /**
-     * Build action message.
-     *
-     * @param e the Throwable/Exception
-     * @param args arguments
-     * @return action message
-     */
-    private String buildMessage(Throwable e, Object[] args) {
-        String messageKey = "struts.message.upload.message." + e.getClass().getSimpleName();
-        LOG.debug("Preparing message for key: [{}]", messageKey);
-        return LocalizedTextUtil.findText(this.getClass(), messageKey, defaultLocale, e.getMessage(), args);
     }
 
     /**

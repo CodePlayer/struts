@@ -178,7 +178,7 @@ public class TextTagTest extends AbstractTagTest {
         ValueStack newStack = container.getInstance(ValueStackFactory.class).createValueStack();
         newStack.getContext().put(ActionContext.LOCALE, foreignLocale);
         newStack.getContext().put(ActionContext.CONTAINER, container);
-        newStack.push(new TestAction1());
+        newStack.push(container.inject(TestAction1.class));
         request.setAttribute(ServletActionContext.STRUTS_VALUESTACK_KEY, newStack);
         assertNotSame(ActionContext.getContext().getValueStack().peek(), newStack.peek());
 
@@ -189,7 +189,7 @@ public class TextTagTest extends AbstractTagTest {
 
     public void testTextTagUsesLocaleFromValueStack() throws JspException {
         stack.pop();
-        stack.push(new TestAction1());
+        stack.push(container.inject(TestAction1.class));
 
         Locale defaultLocale = getDefaultLocale();
         Locale foreignLocale = getForeignLocale();
@@ -218,15 +218,17 @@ public class TextTagTest extends AbstractTagTest {
         assertEquals(value_int, writer.toString());
     }
 
-     public void testTextTagSearchesStackByDefault() throws JspException {
+     public void testTextTagCanSearchStackToFindValue() throws JspException {
         String key = "result";
 
         tag.setName(key);
+        tag.setSearchValueStack("true");
         final StringBuffer buffer = writer.getBuffer();
         buffer.delete(0, buffer.length());
         ValueStack newStack = container.getInstance(ValueStackFactory.class).createValueStack();
         newStack.getContext().put(ActionContext.CONTAINER, container);
         TestAction testAction = new TestAction();
+        container.inject(testAction);
         testAction.setResult("bar");
         newStack.push(testAction);
         request.setAttribute(ServletActionContext.STRUTS_VALUESTACK_KEY, newStack);
@@ -237,16 +239,16 @@ public class TextTagTest extends AbstractTagTest {
         assertEquals("bar", writer.toString());
     }
 
-    public void testTextTagDoNotSearchStack() throws JspException {
+    public void testTextTagDoNotSearchStackByDefault() throws JspException {
         String key = "result";
 
         tag.setName(key);
-        tag.setSearchValueStack("false");
         final StringBuffer buffer = writer.getBuffer();
         buffer.delete(0, buffer.length());
         ValueStack newStack = container.getInstance(ValueStackFactory.class).createValueStack();
         newStack.getContext().put(ActionContext.CONTAINER, container);
         TestAction testAction = new TestAction();
+        container.inject(testAction);
         testAction.setResult("bar");
         newStack.push(testAction);
         request.setAttribute(ServletActionContext.STRUTS_VALUESTACK_KEY, newStack);
@@ -272,7 +274,7 @@ public class TextTagTest extends AbstractTagTest {
 
     public void testWithNoMessageAndNoDefaultKeyReturned() throws JspException {
         final String key = "key.does.not.exist";
-        tag.setName("'" + key + "'");
+        tag.setName(key);
         tag.doStartTag();
         tag.doEndTag();
         assertEquals(key, writer.toString());

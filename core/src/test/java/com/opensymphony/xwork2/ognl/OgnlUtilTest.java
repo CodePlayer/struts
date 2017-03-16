@@ -454,7 +454,7 @@ public class OgnlUtilTest extends XWorkTestCase {
         final ValueStack stack = ActionContext.getContext().getValueStack();
 
         Object result = Ognl.getValue(ognlUtil.compile("{\"foo\",'ruby','b','tom'}"), context, foo);
-        foo.setIncludes((Collection) result);
+        foo.setIncludesCollection((Collection) result);
 
         assertEquals(4, foo.getIncludes().size());
         assertEquals("foo", foo.getIncludes().toArray()[0]);
@@ -473,7 +473,7 @@ public class OgnlUtilTest extends XWorkTestCase {
 
         result = ActionContext.getContext().getValueStack().findValue("{\"foo\",'ruby','b','tom'}");
 
-        foo.setIncludes((Collection) result);
+        foo.setIncludesCollection((Collection) result);
         assertEquals(ArrayList.class, result.getClass());
 
         assertEquals(4, foo.getIncludes().size());
@@ -742,6 +742,36 @@ public class OgnlUtilTest extends XWorkTestCase {
         assertNotNull(expected);
         assertSame(MethodFailedException.class, expected.getClass());
         assertEquals(expected.getMessage(), "Method \"getRuntime\" failed for object class java.lang.Runtime");
+    }
+
+    public void testBlockSequenceOfExpressions() throws Exception {
+        Foo foo = new Foo();
+
+        Exception expected = null;
+        try {
+            ognlUtil.setValue("#booScope=@myclass@DEFAULT_SCOPE,#bootScope.init()", ognlUtil.createDefaultContext(foo), foo, true);
+            fail();
+        } catch (OgnlException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
+        assertSame(OgnlException.class, expected.getClass());
+        assertEquals(expected.getMessage(), "Eval expressions/chained expressions have been disabled!");
+    }
+
+    public void testCallMethod() throws Exception {
+        Foo foo = new Foo();
+
+        Exception expected = null;
+        try {
+            ognlUtil.callMethod("#booScope=@myclass@DEFAULT_SCOPE,#bootScope.init()", ognlUtil.createDefaultContext(foo), foo);
+            fail();
+        } catch (OgnlException e) {
+            expected = e;
+        }
+        assertNotNull(expected);
+        assertSame(OgnlException.class, expected.getClass());
+        assertEquals(expected.getMessage(), "It isn't a simple method which can be called!");
     }
 
     public static class Email {

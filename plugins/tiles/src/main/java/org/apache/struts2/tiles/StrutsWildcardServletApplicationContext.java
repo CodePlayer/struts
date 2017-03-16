@@ -31,7 +31,6 @@ import javax.servlet.ServletContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -54,8 +53,12 @@ public class StrutsWildcardServletApplicationContext extends ServletApplicationC
 
         for (Object path : context.getResourcePaths("/")) {
             try {
-                URL url = new File(context.getRealPath(String.valueOf(path))).toURI().toURL();
-                urls.add(url);
+                String realPath = context.getRealPath(String.valueOf(path));
+
+                if (realPath != null) {
+                    URL url = new File(realPath).toURI().toURL();
+                    urls.add(url);
+                }
             } catch (MalformedURLException e) {
                 throw new ConfigurationException(e);
             }
@@ -96,9 +99,10 @@ public class StrutsWildcardServletApplicationContext extends ServletApplicationC
 
     public ApplicationResource getResource(ApplicationResource base, Locale locale) {
         String localePath = base.getLocalePath(locale);
-        if (new File(localePath).exists()) {
+        File localFile = new File(localePath);
+        if (localFile.exists()) {
             try {
-                return new StrutsApplicationResource(URI.create("file://" + localePath).toURL());
+                return new StrutsApplicationResource(localFile.toURI().toURL());
             } catch (MalformedURLException e) {
                 LOG.warn("Cannot access [{}]", localePath, e);
                 return null;
@@ -114,6 +118,8 @@ public class StrutsWildcardServletApplicationContext extends ServletApplicationC
 
         Pattern pattern = WildcardUtil.compileWildcardPattern(path);
         Map<String, URL> matches = finder.getResourcesMap("");
+
+        LOG.trace("Found resources {} matching pattern {}", matches, path);
 
         for (String resource : matches.keySet()) {
             if (pattern.matcher(resource).matches()) {

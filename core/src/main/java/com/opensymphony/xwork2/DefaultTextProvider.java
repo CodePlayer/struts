@@ -15,7 +15,8 @@
  */
 package com.opensymphony.xwork2;
 
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
+import com.opensymphony.xwork2.inject.Inject;
+import com.opensymphony.xwork2.util.DefaultLocalizedTextProvider;
 import com.opensymphony.xwork2.util.ValueStack;
 
 import java.io.Serializable;
@@ -31,13 +32,20 @@ import java.util.ResourceBundle;
  *
  * @author Jason Carreira jcarreira@gmail.com
  * @author Rainer Hermanns
- * @see LocalizedTextUtil#addDefaultResourceBundle(String)
+ * @see DefaultLocalizedTextProvider#addDefaultResourceBundle(String)
  */
 public class DefaultTextProvider implements TextProvider, Serializable, Unchainable {
 
     private static final Object[] EMPTY_ARGS = new Object[0];
 
+    protected LocalizedTextProvider localizedTextProvider;
+
     public DefaultTextProvider() {
+    }
+
+    @Inject
+    public void setLocalizedTextProvider(LocalizedTextProvider localizedTextProvider) {
+        this.localizedTextProvider = localizedTextProvider;
     }
 
     public boolean hasKey(String key) {
@@ -45,7 +53,7 @@ public class DefaultTextProvider implements TextProvider, Serializable, Unchaina
     }
 
     public String getText(String key) {
-        return LocalizedTextUtil.findDefaultText(key, ActionContext.getContext().getLocale());
+        return localizedTextProvider.findDefaultText(key, ActionContext.getContext().getLocale());
     }
 
     public String getText(String key, String defaultValue) {
@@ -64,7 +72,7 @@ public class DefaultTextProvider implements TextProvider, Serializable, Unchaina
             params = EMPTY_ARGS;
         }
 
-        return LocalizedTextUtil.findDefaultText(key, ActionContext.getContext().getLocale(), params);
+        return localizedTextProvider.findDefaultText(key, ActionContext.getContext().getLocale(), params);
     }
 
     public String getText(String key, String[] args) {
@@ -75,7 +83,7 @@ public class DefaultTextProvider implements TextProvider, Serializable, Unchaina
             params = EMPTY_ARGS;
         }
 
-        return LocalizedTextUtil.findDefaultText(key, ActionContext.getContext().getLocale(), params);
+        return localizedTextProvider.findDefaultText(key, ActionContext.getContext().getLocale(), params);
     }
 
     public String getText(String key, String defaultValue, List<?> args) {
@@ -136,7 +144,7 @@ public class DefaultTextProvider implements TextProvider, Serializable, Unchaina
     }
 
     public ResourceBundle getTexts(String bundleName) {
-        return LocalizedTextUtil.findResourceBundle(bundleName, ActionContext.getContext().getLocale());
+        return localizedTextProvider.findResourceBundle(bundleName, ActionContext.getContext().getLocale());
     }
 
     public ResourceBundle getTexts() {

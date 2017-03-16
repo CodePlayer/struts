@@ -27,7 +27,8 @@ import java.lang.reflect.Method;
 /**
  * <!-- START SNIPPET: description -->
  * <p>
- * An interceptor that makes sure there are not validation errors before allowing the interceptor chain to continue.
+ * An interceptor that makes sure there are not validation, conversion or action errors before allowing the interceptor chain to continue. 
+ * If a single FieldError or ActionError (including the ones replicated by the Message Store Interceptor in a redirection) is found, the INPUT result will be triggered.
  * <b>This interceptor does not perform any validation</b>.
  * </p>
  *
@@ -206,7 +207,7 @@ public class DefaultWorkflowInterceptor extends MethodFilterInterceptor {
      */
     protected String processInputConfig(final Object action, final String method, final String currentResultName) throws Exception {
         String resultName = currentResultName;
-        InputConfig annotation = action.getClass().getMethod(method, EMPTY_CLASS_ARRAY).getAnnotation(InputConfig.class);
+        InputConfig annotation = AnnotationUtils.findAnnotation(action.getClass().getMethod(method, EMPTY_CLASS_ARRAY), InputConfig.class);
         if (annotation != null) {
             if (StringUtils.isNotEmpty(annotation.methodName())) {
                 Method m = action.getClass().getMethod(annotation.methodName());

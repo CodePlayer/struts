@@ -32,7 +32,7 @@ import com.opensymphony.xwork2.config.entities.InterceptorStackConfig;
 import com.opensymphony.xwork2.config.entities.PackageConfig;
 import com.opensymphony.xwork2.inject.Container;
 import com.opensymphony.xwork2.interceptor.Interceptor;
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
+import com.opensymphony.xwork2.LocalizedTextProvider;
 import org.apache.struts2.StrutsConstants;
 import org.apache.struts2.StrutsInternalTestCase;
 import org.apache.struts2.dispatcher.multipart.MultiPartRequestWrapper;
@@ -55,14 +55,14 @@ import java.util.Map;
 public class DispatcherTest extends StrutsInternalTestCase {
 
     public void testDefaultResurceBundlePropertyLoaded() throws Exception {
+        LocalizedTextProvider localizedTextProvider = container.getInstance(LocalizedTextProvider.class);
+
         // some i18n messages from xwork-messages.properties
-        assertEquals(
-                LocalizedTextUtil.findDefaultText("xwork.error.action.execution", Locale.US),
+        assertEquals(localizedTextProvider.findDefaultText("xwork.error.action.execution", Locale.US),
                 "Error during Action invocation");
 
         // some i18n messages from struts-messages.properties
-        assertEquals(
-                LocalizedTextUtil.findDefaultText("struts.messages.error.uploading", Locale.US,
+        assertEquals(localizedTextProvider.findDefaultText("struts.messages.error.uploading", Locale.US,
                         new Object[] { "some error messages" }),
                 "Error uploading: some error messages");
     }
@@ -175,7 +175,7 @@ public class DispatcherTest extends StrutsInternalTestCase {
     
     public void testConfigurationManager() {
     	Dispatcher du;
-    	final InternalConfigurationManager configurationManager = new InternalConfigurationManager();
+    	final InternalConfigurationManager configurationManager = new InternalConfigurationManager(Container.DEFAULT_NAME);
     	try {
     		du = new MockDispatcher(new MockServletContext(), new HashMap<String, String>(), configurationManager);
     		du.init();
@@ -196,7 +196,7 @@ public class DispatcherTest extends StrutsInternalTestCase {
     public void testObjectFactoryDestroy() throws Exception {
 
         final InnerDestroyableObjectFactory destroyedObjectFactory = new InnerDestroyableObjectFactory();
-        ConfigurationManager cm = new ConfigurationManager();
+        ConfigurationManager cm = new ConfigurationManager(Container.DEFAULT_NAME);
         Dispatcher du = new MockDispatcher(new MockServletContext(), new HashMap<String, String>(), cm);
         Mock mockConfiguration = new Mock(Configuration.class);
         cm.setConfiguration((Configuration)mockConfiguration.proxy());
@@ -245,7 +245,7 @@ public class DispatcherTest extends StrutsInternalTestCase {
         mockConfiguration.matchAndReturn("getContainer", mockContainer.proxy());
         mockConfiguration.expect("destroy");
         
-        ConfigurationManager configurationManager = new ConfigurationManager();
+        ConfigurationManager configurationManager = new ConfigurationManager(Container.DEFAULT_NAME);
         configurationManager.setConfiguration((Configuration) mockConfiguration.proxy());
         
         Dispatcher dispatcher = new MockDispatcher(new MockServletContext(), new HashMap<String, String>(), configurationManager);
@@ -259,8 +259,12 @@ public class DispatcherTest extends StrutsInternalTestCase {
     
     class InternalConfigurationManager extends ConfigurationManager {
     	public boolean destroyConfiguration = false;
-    	
-    	@Override
+
+        public InternalConfigurationManager(String name) {
+            super(name);
+        }
+
+        @Override
     	public synchronized void destroyConfiguration() {
     		super.destroyConfiguration();
     		destroyConfiguration = true;

@@ -98,6 +98,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
     private Map<String, Element> declaredPackages = new HashMap<>();
 
     private FileManager fileManager;
+    private ValueSubstitutor valueSubstitutor;
 
     public XmlConfigurationProvider() {
         this("xwork.xml", true);
@@ -139,6 +140,11 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
     @Inject
     public void setFileManagerFactory(FileManagerFactory fileManagerFactory) {
         this.fileManager = fileManagerFactory.getFileManager();
+    }
+
+    @Inject(required = false)
+    public void setValueSubstitutor(ValueSubstitutor valueSubstitutor) {
+        this.valueSubstitutor = valueSubstitutor;
     }
 
     /**
@@ -195,7 +201,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
     }
 
     public void register(ContainerBuilder containerBuilder, LocatableProperties props) throws ConfigurationException {
-        LOG.info("Parsing configuration file [{}]", configFileName);
+        LOG.trace("Parsing configuration file [{}]", configFileName);
         Map<String, Node> loadedBeans = new HashMap<>();
         for (Document doc : documents) {
             Element rootElement = doc.getDocumentElement();
@@ -270,6 +276,12 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
                     } else if ("constant".equals(nodeName)) {
                         String name = child.getAttribute("name");
                         String value = child.getAttribute("value");
+
+                        if (valueSubstitutor != null) {
+                            LOG.debug("Substituting value [{}] using [{}]", value, valueSubstitutor.getClass().getName());
+                            value = valueSubstitutor.substitute(value);
+                        }
+
                         props.setProperty(name, value, childNode);
                     } else if (nodeName.equals("unknown-handler-stack")) {
                         List<UnknownHandlerConfig> unknownHandlerStack = new ArrayList<UnknownHandlerConfig>();
@@ -464,6 +476,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
                 .addInterceptors(interceptorList)
                 .addExceptionMappings(exceptionMappings)
                 .addParams(XmlHelper.getParams(actionElement))
+                .setStrictMethodInvocation(packageContext.isStrictMethodInvocation())
                 .addAllowedMethod(allowedMethods)
                 .location(location)
                 .build();
@@ -744,7 +757,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
                 {
                     // if <result ...>something</result> then we add a parameter of 'something' as this is the most used result param
                     if (resultElement.getChildNodes().getLength() >= 1) {
-                        resultParams = new LinkedHashMap<String, String>();
+                        resultParams = new LinkedHashMap<>();
 
                         String paramName = config.getDefaultResultParam();
                         if (paramName != null) {
@@ -762,7 +775,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
                                 resultParams.put(paramName, val);
                             }
                         } else {
-                            LOG.warn("No default parameter defined for result [{}] of type [{}] ", config.getName(), config.getClassName());
+                            LOG.debug("No default parameter defined for result [{}] of type [{}] ", config.getName(), config.getClassName());
                         }
                     }
                 }
@@ -872,10 +885,12 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
             // user enabled Strict DMI but didn't defined action specific 'allowed-methods' so we use 'global-allowed-methods' only
             allowedMethods = new HashSet<>(packageContext.getGlobalAllowedMethods());
         } else {
-            // Strict DMI is disabled to any method can be called
+            // Strict DMI is disabled so any method can be called
             allowedMethods = new HashSet<>();
-            allowedMethods.add(ActionConfig.REGEX_WILDCARD);
+            allowedMethods.add(ActionConfig.WILDCARD);
         }
+
+        LOG.debug("Collected allowed methods: {}", allowedMethods);
 
         return Collections.unmodifiableSet(allowedMethods);
     }
@@ -1024,7 +1039,7 @@ public class XmlConfigurationProvider implements ConfigurationProvider {
                 if (errorIfMissing) {
                     throw new ConfigurationException("Could not open files of the name " + fileName, ioException);
                 } else {
-                    LOG.info("Unable to locate configuration files of the name {}, skipping", fileName);
+                    LOG.trace("Unable to locate configuration files of the name {}, skipping", fileName);
                     return docs;
                 }
             }

@@ -76,20 +76,15 @@ public class CompositeTextProviderTest extends XWorkTestCase {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        textProvider = new CompositeTextProvider(new TextProvider[] {
-                new TextProviderSupport(ResourceBundle.getBundle("com.opensymphony.xwork2.validator.CompositeTextProviderTestResourceBundle1"),
-                        new LocaleProvider() {
-                            public Locale getLocale() {
-                                return Locale.ENGLISH;
-                            }
-                        }),
-                new TextProviderSupport(ResourceBundle.getBundle("com.opensymphony.xwork2.validator.CompositeTextProviderTestResourceBundle2"),
-                        new LocaleProvider() {
-                            public Locale getLocale() {
-                                return Locale.ENGLISH;
-                            }
-                        })
 
+        TextProviderFactory tpf = container.getInstance(TextProviderFactory.class);
+        tpf.setTextProvider(null);
+
+        ActionContext.getContext().setLocale(Locale.ENGLISH);
+
+        textProvider = new CompositeTextProvider(new TextProvider[]{
+                tpf.createInstance(ResourceBundle.getBundle("com.opensymphony.xwork2.validator.CompositeTextProviderTestResourceBundle1")),
+                tpf.createInstance(ResourceBundle.getBundle("com.opensymphony.xwork2.validator.CompositeTextProviderTestResourceBundle2"))
         });
     }
 

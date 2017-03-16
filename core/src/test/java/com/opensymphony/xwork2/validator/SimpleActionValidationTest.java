@@ -21,6 +21,7 @@ import com.opensymphony.xwork2.config.providers.XmlConfigurationProvider;
 import com.opensymphony.xwork2.interceptor.ValidationAware;
 import com.opensymphony.xwork2.util.ValueStack;
 import com.opensymphony.xwork2.validator.validators.ValidatorSupport;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.util.*;
 
@@ -40,7 +41,7 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         params.put("percentage", "1.23456789");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         try {
             ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ACTION_NAME, null, extraContext);
@@ -51,7 +52,10 @@ public class SimpleActionValidationTest extends XWorkTestCase {
 
             // put in an out-of-range value to see if the old validators still work
             ActionContext.setContext(new ActionContext(new HashMap<String, Object>()));
+
             params.put("bar", "42");
+            extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
+
             proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ALIAS_NAME, null, extraContext);
             proxy.execute();
             validationAware = (ValidationAware) proxy.getAction();
@@ -87,7 +91,7 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         params.put("bar", "7");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         try {
             ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ACTION_NAME, null, extraContext);
@@ -112,7 +116,7 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         params.put("foo", "200");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         try {
             ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ACTION_NAME, null, extraContext);
@@ -146,7 +150,10 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         String messageKey = "does.not.exist";
         validator.setMessageKey(messageKey);
 
-        ValidatorContext validatorContext = new DelegatingValidatorContext(new SimpleAction());
+        SimpleAction action = new SimpleAction();
+        container.inject(action);
+
+        ValidatorContext validatorContext = new DelegatingValidatorContext(action, container.inject(TextProviderFactory.class));
         validator.setValidatorContext(validatorContext);
         validator.validate(this);
         assertTrue(validatorContext.hasActionErrors());
@@ -161,7 +168,7 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         params.put("bar", "42");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         try {
             ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_ACTION_NAME, null, extraContext);
@@ -196,7 +203,7 @@ public class SimpleActionValidationTest extends XWorkTestCase {
         params.put("bean.count", "100");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         try {
             ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.VALIDATION_SUBPROPERTY_NAME, null, extraContext);

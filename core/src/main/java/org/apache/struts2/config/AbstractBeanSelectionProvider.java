@@ -42,25 +42,19 @@ public abstract class AbstractBeanSelectionProvider implements BeanSelectionProv
     }
 
     protected void alias(Class type, String key, ContainerBuilder builder, Properties props, Scope scope) {
-        if (!builder.contains(type)) {
+        if (!builder.contains(type, Container.DEFAULT_NAME)) {
             String foundName = props.getProperty(key, DEFAULT_BEAN_NAME);
             if (builder.contains(type, foundName)) {
-                if (LOG.isInfoEnabled()) {
-                    LOG.info("Choosing bean ({}) for ({})", foundName, type.getName());
-                }
+                LOG.trace("Choosing bean ({}) for ({})", foundName, type.getName());
                 builder.alias(type, foundName, Container.DEFAULT_NAME);
             } else {
                 try {
                     Class cls = ClassLoaderUtil.loadClass(foundName, this.getClass());
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Choosing bean ({}) for ({})", cls.getName(), type.getName());
-                    }
+                    LOG.trace("Choosing bean ({}) for ({})", cls.getName(), type.getName());
                     builder.factory(type, cls, scope);
                 } catch (ClassNotFoundException ex) {
                     // Perhaps a spring bean id, so we'll delegate to the object factory at runtime
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Choosing bean ({}) for ({}) to be loaded from the ObjectFactory", foundName, type.getName());
-                    }
+                    LOG.trace("Choosing bean ({}) for ({}) to be loaded from the ObjectFactory", foundName, type.getName());
                     if (DEFAULT_BEAN_NAME.equals(foundName)) {
                         // Probably an optional bean, will ignore
                     } else {

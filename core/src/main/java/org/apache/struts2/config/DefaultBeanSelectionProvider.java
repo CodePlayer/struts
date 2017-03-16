@@ -22,6 +22,8 @@
 package org.apache.struts2.config;
 
 import com.opensymphony.xwork2.ActionProxyFactory;
+import com.opensymphony.xwork2.LocalizedTextProvider;
+import com.opensymphony.xwork2.TextProviderFactory;
 import com.opensymphony.xwork2.factory.UnknownHandlerFactory;
 import com.opensymphony.xwork2.security.AcceptedPatternsChecker;
 import com.opensymphony.xwork2.security.ExcludedPatternsChecker;
@@ -51,7 +53,6 @@ import com.opensymphony.xwork2.factory.ResultFactory;
 import com.opensymphony.xwork2.factory.ValidatorFactory;
 import com.opensymphony.xwork2.inject.ContainerBuilder;
 import com.opensymphony.xwork2.inject.Scope;
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
 import com.opensymphony.xwork2.util.PatternMatcher;
 import com.opensymphony.xwork2.util.TextParser;
 import com.opensymphony.xwork2.util.ValueStackFactory;
@@ -71,8 +72,6 @@ import org.apache.struts2.util.ContentTypeMatcher;
 import org.apache.struts2.views.freemarker.FreemarkerManager;
 import org.apache.struts2.views.util.UrlHelper;
 import org.apache.struts2.views.velocity.VelocityManager;
-
-import java.util.StringTokenizer;
 
 /**
  * Selects the implementations of key framework extension points, using the loaded
@@ -334,6 +333,12 @@ import java.util.StringTokenizer;
  *     <td>singleton</td>
  *     <td>Matches content type of uploaded files (since 2.3.22)</td>
  *   </tr>
+ *   <tr>
+ *     <td>com.opensymphony.xwork2.LocalizedTextProvider</td>
+ *     <td>struts.localizedTextProvider</td>
+ *     <td>singleton</td>
+ *     <td>Provides access to resource bundles used to localise messages (since 2.5.11)</td>
+ *   </tr>
  * </table>
  *
  * <!-- END SNIPPET: extensionPoints -->
@@ -387,8 +392,10 @@ public class DefaultBeanSelectionProvider extends AbstractBeanSelectionProvider 
         alias(TypeConverterHolder.class, StrutsConstants.STRUTS_CONVERTER_HOLDER, builder, props);
 
         alias(TextProvider.class, StrutsConstants.STRUTS_XWORKTEXTPROVIDER, builder, props, Scope.PROTOTYPE);
-
+        alias(TextProviderFactory.class, StrutsConstants.STRUTS_TEXT_PROVIDER_FACTORY, builder, props, Scope.PROTOTYPE);
         alias(LocaleProvider.class, StrutsConstants.STRUTS_LOCALE_PROVIDER, builder, props);
+        alias(LocalizedTextProvider.class, StrutsConstants.STRUTS_LOCALIZED_TEXT_PROVIDER, builder, props);
+
         alias(ActionProxyFactory.class, StrutsConstants.STRUTS_ACTIONPROXYFACTORY, builder, props);
         alias(ObjectTypeDeterminer.class, StrutsConstants.STRUTS_OBJECTTYPEDETERMINER, builder, props);
         alias(ActionMapper.class, StrutsConstants.STRUTS_MAPPER_CLASS, builder, props);
@@ -431,9 +438,6 @@ public class DefaultBeanSelectionProvider extends AbstractBeanSelectionProvider 
         convertIfExist(props, StrutsConstants.STRUTS_ADDITIONAL_ACCEPTED_PATTERNS, XWorkConstants.ADDITIONAL_ACCEPTED_PATTERNS);
         convertIfExist(props, StrutsConstants.STRUTS_OVERRIDE_EXCLUDED_PATTERNS, XWorkConstants.OVERRIDE_EXCLUDED_PATTERNS);
         convertIfExist(props, StrutsConstants.STRUTS_OVERRIDE_ACCEPTED_PATTERNS, XWorkConstants.OVERRIDE_ACCEPTED_PATTERNS);
-
-        LocalizedTextUtil.addDefaultResourceBundle("org/apache/struts2/struts-messages");
-        loadCustomResourceBundles(props);
     }
 
     /**
@@ -456,23 +460,6 @@ public class DefaultBeanSelectionProvider extends AbstractBeanSelectionProvider 
             props.setProperty(XWorkConstants.DEV_MODE, "true");
         } else {
             props.setProperty(XWorkConstants.DEV_MODE, "false");
-        }
-    }
-
-    private void loadCustomResourceBundles(LocatableProperties props) {
-        String bundles = props.getProperty(StrutsConstants.STRUTS_CUSTOM_I18N_RESOURCES);
-        if (bundles != null && bundles.length() > 0) {
-            StringTokenizer customBundles = new StringTokenizer(bundles, ", ");
-
-            while (customBundles.hasMoreTokens()) {
-                String name = customBundles.nextToken();
-                try {
-              	    LOG.info("Loading global messages from [{}]", name);
-                    LocalizedTextUtil.addDefaultResourceBundle(name);
-                } catch (Exception e) {
-                    LOG.error("Could not find messages file {}.properties. Skipping", name);
-                }
-            }
         }
     }
 

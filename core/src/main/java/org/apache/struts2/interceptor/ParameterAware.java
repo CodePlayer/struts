@@ -23,7 +23,6 @@ package org.apache.struts2.interceptor;
 
 import java.util.Map;
 
-
 /**
  * <p>
  * This interface gives actions an alternative way of receiving input parameters. The map will
@@ -39,7 +38,10 @@ import java.util.Map;
  * Note that all parameter values for a given name will be returned, so the type of the objects in
  * the map is <tt>java.lang.String[]</tt>.
  * </p>
+ *
+ * @deprecated please use {@link HttpParametersAware} instead
  */
+@Deprecated
 public interface ParameterAware {
 
     /**

@@ -52,14 +52,10 @@ public class ResultTypeConfig extends Located implements Serializable {
         this.name = orig.name;
         this.className = orig.className;
         this.defaultResultParam = orig.defaultResultParam;
-        this.params = orig.params;
+        this.params = new LinkedHashMap<>(orig.params);
         this.location = orig.location;
     }
 
-    public void setDefaultResultParam(String defaultResultParam) {
-        this.defaultResultParam = defaultResultParam;
-    }
-    
     public String getDefaultResultParam() {
         return this.defaultResultParam;
     }
@@ -73,7 +69,7 @@ public class ResultTypeConfig extends Located implements Serializable {
     }
 
     public Map<String,String> getParams() {
-        return this.params;
+        return Collections.unmodifiableMap(this.params);
     }
 
     @Override
@@ -152,14 +148,9 @@ public class ResultTypeConfig extends Located implements Serializable {
         }
 
         public ResultTypeConfig build() {
-            embalmTarget();
             ResultTypeConfig result = target;
             target = new ResultTypeConfig(target);
             return result;
-        }
-
-        protected void embalmTarget() {
-            target.params = Collections.unmodifiableMap(target.params);
         }
     }
 }

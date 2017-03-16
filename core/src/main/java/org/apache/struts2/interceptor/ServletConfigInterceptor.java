@@ -55,7 +55,9 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
  *
  * <li>{@link ServletResponseAware}</li>
  *
- * <li>{@link ParameterAware}</li>
+ * <li>{@link ParameterAware} - deprecated since 2.5.4, please use {@link HttpParametersAware}</li>
+ *
+ * <li>{@link HttpParametersAware}</li>
  *
  * <li>{@link RequestAware}</li>
  *
@@ -105,6 +107,7 @@ import com.opensymphony.xwork2.interceptor.AbstractInterceptor;
  * @see ServletRequestAware
  * @see ServletResponseAware
  * @see ParameterAware
+ * @see HttpParametersAware
  * @see SessionAware
  * @see ApplicationAware
  * @see PrincipalAware
@@ -135,7 +138,11 @@ public class ServletConfigInterceptor extends AbstractInterceptor implements Str
         }
 
         if (action instanceof ParameterAware) {
-            ((ParameterAware) action).setParameters((Map)context.getParameters());
+            context.getParameters().applyParameters((ParameterAware) action);
+        }
+
+        if (action instanceof HttpParametersAware) {
+            ((HttpParametersAware) action).setParameters(context.getParameters());
         }
 
         if (action instanceof ApplicationAware) {

@@ -37,7 +37,13 @@ import java.util.Map;
  * display the original string ("abc") again rather than the int value (likely 0, which would make very little sense to
  * the user).
  * </p>
- *
+ * 
+ * <p>
+ * <b>Note:</b> Since 2.5.2, this interceptor extends {@link MethodFilterInterceptor}, therefore being
+ * able to deal with excludeMethods / includeMethods parameters. See [Workflow Interceptor]
+ * (class {@link DefaultWorkflowInterceptor}) for documentation and examples on how to use this feature.
+ * </p>
+ * 
  * <!-- END SNIPPET: description -->
  *
  * <p><u>Interceptor parameters:</u></p>
@@ -75,7 +81,7 @@ import java.util.Map;
  *
  * @author Jason Carreira
  */
-public class ConversionErrorInterceptor extends AbstractInterceptor {
+public class ConversionErrorInterceptor extends MethodFilterInterceptor {
 
     public static final String ORIGINAL_PROPERTY_OVERRIDE = "original.property.override";
 
@@ -88,7 +94,7 @@ public class ConversionErrorInterceptor extends AbstractInterceptor {
     }
 
     @Override
-    public String intercept(ActionInvocation invocation) throws Exception {
+    public String doIntercept(ActionInvocation invocation) throws Exception {
 
         ActionContext invocationContext = invocation.getInvocationContext();
         Map<String, Object> conversionErrors = invocationContext.getConversionErrors();

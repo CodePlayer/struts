@@ -29,9 +29,10 @@ import com.opensymphony.xwork2.ognl.accessor.CompoundRootAccessor;
 import com.opensymphony.xwork2.util.CompoundRoot;
 import com.opensymphony.xwork2.util.ValueStack;
 import com.opensymphony.xwork2.util.ValueStackFactory;
-import junit.framework.Assert;
+import org.junit.Assert;
 import ognl.OgnlContext;
 import ognl.PropertyAccessor;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.io.File;
 import java.util.*;
@@ -70,7 +71,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
                 put("test%test", "test%test");
             }
         };
-        pi.setParameters(a, stack, parameters);
+        pi.setParameters(a, stack, HttpParameters.create(parameters).build());
         assertEquals(expected, actual);
     }
 
@@ -93,7 +94,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
 
         // when
         ValidateAction action = new ValidateAction();
-        pi.setParameters(action, vs, params);
+        pi.setParameters(action, vs, HttpParameters.create(params).build());
 
         // then
         assertEquals(3, action.getActionMessages().size());
@@ -138,7 +139,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
 
         // when
         ValidateAction action = new ValidateAction();
-        pi.setParameters(action, vs, params);
+        pi.setParameters(action, vs, HttpParameters.create(params).build());
 
         // then
         assertEquals(0, action.getActionMessages().size());
@@ -178,7 +179,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
 
         // when
         ValidateAction action = new ValidateAction();
-        pi.setParameters(action, vs, params);
+        pi.setParameters(action, vs, HttpParameters.create(params).build());
 
         // then
         assertEquals(3, action.getActionMessages().size());
@@ -201,7 +202,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("@java.lang.System@exit(1).dummy", "dumb value");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.MODEL_DRIVEN_PARAM_TEST, null, extraContext);
         assertEquals(Action.SUCCESS, proxy.execute());
@@ -220,7 +221,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("count", "15");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.MODEL_DRIVEN_PARAM_TEST, null, extraContext);
         assertEquals(Action.SUCCESS, proxy.execute());
@@ -246,7 +247,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("('\\u0023'%2b'session[\'user5\']')(unused)", "0wn3d");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         ValueStack stack = proxy.getInvocation().getStack();
@@ -300,7 +301,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
 
         // when
         ValidateAction action = new ValidateAction();
-        pi.setParameters(action, vs, params);
+        pi.setParameters(action, vs, HttpParameters.create(params).build());
 
         // then
         assertEquals(0, action.getActionMessages().size());
@@ -321,7 +322,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("(asdf)(('\\u0023rt.exit(1)')(\\u0023rt\\u003d@java.lang.Runtime@getRuntime()))", "1");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         ValueStack stack = proxy.getInvocation().getStack();
@@ -341,7 +342,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("blah", "This is blah");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -356,7 +357,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("theProtectedMap[' p0 p1 ']", "test4");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -369,7 +370,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("theProtectedMap['名字']", "test1");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -405,7 +406,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         parameters.put("huuhaa", "");
 
         Action action = new SimpleAction();
-        parametersInterceptor.setParameters(action, stack, parameters);
+        parametersInterceptor.setParameters(action, stack, HttpParameters.create(parameters).build());
         assertEquals(1, actual.size());
     }
 
@@ -425,7 +426,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         };
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
 
@@ -456,7 +457,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         };
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
 
@@ -479,7 +480,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("theProtectedMap.boo", "This is blah");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -495,7 +496,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("theProtectedMap.boo", "This is blah");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -519,7 +520,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("top['blah'](0)", "true");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -537,7 +538,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("existingMap.boo", "This is blah");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionProxy proxy = actionProxyFactory.createActionProxy("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
         proxy.execute();
@@ -556,7 +557,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("not_a_property", "There is no action property named like this");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionConfig config = configuration.getRuntimeConfiguration().getActionConfig("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME);
         container.inject(config.getInterceptors().get(0).getInterceptor());
@@ -575,7 +576,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         params.put("not_a_property", "There is no action property named like this");
 
         HashMap<String, Object> extraContext = new HashMap<>();
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
 
         ActionConfig config = configuration.getRuntimeConfiguration().getActionConfig("", MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME);
         container.inject(config.getInterceptors().get(0).getInterceptor());
@@ -607,7 +608,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         parameters.put("user.name", "Superman");
 
         Action action = new SimpleAction();
-        pi.setParameters(action, stack, parameters);
+        pi.setParameters(action, stack, HttpParameters.create(parameters).build());
 
         assertEquals("ordered should be false by default", false, pi.isOrdered());
         assertEquals(2, actual.size());
@@ -634,7 +635,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         parameters.put("user.name", "Superman");
 
         Action action = new SimpleAction();
-        pi.setParameters(action, stack, parameters);
+        pi.setParameters(action, stack, HttpParameters.create(parameters).build());
 
         assertEquals(true, pi.isOrdered());
         assertEquals(3, actual.size());
@@ -674,7 +675,7 @@ public class ParametersInterceptorTest extends XWorkTestCase {
                 put("fooKey", "fooValue");
             }
         };
-        pi.setParameters(new NoParametersAction(), stack, parameters);
+        pi.setParameters(new NoParametersAction(), stack, HttpParameters.create(parameters).build());
         assertEquals(expected, actual);
     }
 
@@ -705,10 +706,26 @@ public class ParametersInterceptorTest extends XWorkTestCase {
         };
 
         // when
-        interceptor.setParameters(new NoParametersAction(), stack, parameters);
+        interceptor.setParameters(new NoParametersAction(), stack, HttpParameters.create(parameters).build());
 
         // then
         assertEquals(expected, actual);
+    }
+
+    public void testBeanListSingleValue() throws Exception {
+        Map<String, Object> params = new HashMap<>();
+        params.put("beanList.name", new String[] { "Superman" });
+
+        HashMap<String, Object> extraContext = new HashMap<>();
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
+
+        ActionProxy proxy = actionProxyFactory.createActionProxy("",
+                MockConfigurationProvider.PARAM_INTERCEPTOR_ACTION_NAME, null, extraContext);
+        proxy.execute();
+        SimpleAction action = (SimpleAction) proxy.getAction();
+        assertNotNull(action);
+        assertNotNull(action.getBeanList());
+        assertFalse(action.getBeanList().isEmpty());
     }
 
     private ValueStack injectValueStack(Map<String, Object> actual) {

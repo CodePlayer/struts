@@ -23,6 +23,7 @@ package org.apache.struts2.util;
 
 import com.opensymphony.xwork2.TextProvider;
 import com.opensymphony.xwork2.util.ValueStack;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -48,7 +49,7 @@ public class TextProviderHelper {
      * @return the message if found, otherwise the defaultMessage
      */
     public static String getText(String key, String defaultMessage, List<Object> args, ValueStack stack) {
-        return getText(key, defaultMessage, args, stack, true);
+        return getText(key, defaultMessage, args, stack, false);
     }
 
     /**
@@ -86,6 +87,9 @@ public class TextProviderHelper {
             if (msg == null) {
                 // use the defaultMessage literal value
                 msg = defaultMessage;
+                msg = StringEscapeUtils.escapeEcmaScript(msg);
+                msg = StringEscapeUtils.escapeHtml4(msg);
+                LOG.debug("Message for key '{}' is null, returns escaped default message [{}]", key, msg);
             }
 
             if (LOG.isWarnEnabled()) {

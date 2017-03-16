@@ -30,6 +30,7 @@ import javax.servlet.http.HttpSession;
 import org.apache.struts2.ServletActionContext;
 import org.apache.struts2.StrutsInternalTestCase;
 import org.apache.struts2.TestConfigurationProvider;
+import org.apache.struts2.dispatcher.HttpParameters;
 import org.apache.struts2.util.TokenHelper;
 import org.apache.struts2.views.jsp.StrutsMockHttpServletRequest;
 import org.apache.struts2.views.jsp.StrutsMockHttpSession;
@@ -47,9 +48,9 @@ public class TokenInterceptorTest extends StrutsInternalTestCase {
 
     ActionContext oldContext;
     HttpSession httpSession;
-    Map extraContext;
-    Map params;
-    Map session;
+    Map<String, Object> extraContext;
+    Map<String, Object> params;
+    Map<String, Object> session;
     StrutsMockHttpServletRequest request;
 
 
@@ -68,14 +69,14 @@ public class TokenInterceptorTest extends StrutsInternalTestCase {
     }
 
     public void testTokenInterceptorSuccess() throws Exception {
-        ActionProxy proxy = buildProxy(getActionName());
         setToken(request);
+        ActionProxy proxy = buildProxy(getActionName());
         assertEquals(Action.SUCCESS, proxy.execute());
     }
 
     public void testCAllExecute2Times() throws Exception {
-        ActionProxy proxy = buildProxy(getActionName());
         setToken(request);
+        ActionProxy proxy = buildProxy(getActionName());
         assertEquals(Action.SUCCESS, proxy.execute());
 
         ActionProxy proxy2 = buildProxy(getActionName());
@@ -102,16 +103,17 @@ public class TokenInterceptorTest extends StrutsInternalTestCase {
         request.getParameterMap().put(TokenHelper.DEFAULT_TOKEN_NAME, new String[]{
                 token
         });
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(params).build());
     }
 
     protected void setUp() throws Exception {
         loadConfigurationProviders(new TestConfigurationProvider());
 
-        session = new TreeMap();
-        params = new TreeMap();
-        extraContext = new TreeMap();
+        session = new TreeMap<>();
+        params = new TreeMap<>();
+        extraContext = new TreeMap<>();
         extraContext.put(ActionContext.SESSION, session);
-        extraContext.put(ActionContext.PARAMETERS, params);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create().build());
 
         request = new StrutsMockHttpServletRequest();
         httpSession = new StrutsMockHttpSession();
@@ -126,6 +128,6 @@ public class TokenInterceptorTest extends StrutsInternalTestCase {
     }
 
     protected ActionProxy buildProxy(String actionName) throws Exception {
-        return actionProxyFactory.createActionProxy("", actionName, null, extraContext, true, true);
+        return actionProxyFactory.createActionProxy("", actionName, null, extraContext);
     }
 }

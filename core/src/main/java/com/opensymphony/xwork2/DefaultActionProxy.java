@@ -24,7 +24,6 @@ import com.opensymphony.xwork2.config.Configuration;
 import com.opensymphony.xwork2.config.ConfigurationException;
 import com.opensymphony.xwork2.config.entities.ActionConfig;
 import com.opensymphony.xwork2.inject.Inject;
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
 import com.opensymphony.xwork2.util.profiling.UtilTimerStack;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +52,8 @@ public class DefaultActionProxy implements ActionProxy, Serializable {
     protected ActionConfig config;
     protected ActionInvocation invocation;
     protected UnknownHandlerManager unknownHandlerManager;
+    protected LocalizedTextProvider localizedTextProvider;
+
     protected String actionName;
     protected String namespace;
     protected String method;
@@ -111,6 +112,11 @@ public class DefaultActionProxy implements ActionProxy, Serializable {
     @Inject(required = false)
     public void setActionEventListener(ActionEventListener listener) {
         this.actionEventListener = listener;
+    }
+
+    @Inject
+    public void setLocalizedTextProvider(LocalizedTextProvider localizedTextProvider) {
+        this.localizedTextProvider = localizedTextProvider;
     }
 
     public Object getAction() {
@@ -197,22 +203,30 @@ public class DefaultActionProxy implements ActionProxy, Serializable {
             if (config.isAllowedMethod(method)) {
                 invocation.init(this);
             } else {
-                throw new ConfigurationException("This method: " + method + " for action " + actionName + " is not allowed!");
+                throw new ConfigurationException(prepareNotAllowedErrorMessage());
             }
         } finally {
             UtilTimerStack.pop(profileKey);
         }
     }
 
+    protected String prepareNotAllowedErrorMessage() {
+        return localizedTextProvider.findDefaultText(
+                "struts.exception.method-not-allowed",
+                Locale.getDefault(),
+                new String[]{method, actionName}
+        );
+    }
+
     protected String getErrorMessage() {
         if ((namespace != null) && (namespace.trim().length() > 0)) {
-            return LocalizedTextUtil.findDefaultText(
-                    XWorkMessages.MISSING_PACKAGE_ACTION_EXCEPTION,
+            return localizedTextProvider.findDefaultText(
+                    "xwork.exception.missing-package-action",
                     Locale.getDefault(),
                     new String[]{namespace, actionName});
         } else {
-            return LocalizedTextUtil.findDefaultText(
-                    XWorkMessages.MISSING_ACTION_EXCEPTION,
+            return localizedTextProvider.findDefaultText(
+                    "xwork.exception.missing-action",
                     Locale.getDefault(),
                     new String[]{actionName});
         }

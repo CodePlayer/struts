@@ -36,6 +36,7 @@ import com.opensymphony.xwork2.ognl.OgnlUtil;
 import com.opensymphony.xwork2.util.location.LocatableProperties;
 import org.apache.struts2.ServletActionContext;
 import org.apache.struts2.StrutsInternalTestCase;
+import org.apache.struts2.dispatcher.HttpParameters;
 import org.apache.struts2.views.jsp.StrutsMockHttpServletRequest;
 import org.apache.struts2.views.jsp.StrutsMockHttpSession;
 
@@ -85,7 +86,7 @@ public class ExecuteAndWaitInterceptorTest extends StrutsInternalTestCase {
         String result2 = proxy2.execute();
         assertEquals("wait", result2);
 
-        Thread.sleep(300);
+        Thread.sleep(500);
 
         ActionProxy proxy3 = buildProxy("action1");
         String result3 = proxy3.execute();
@@ -172,7 +173,7 @@ public class ExecuteAndWaitInterceptorTest extends StrutsInternalTestCase {
         params = new HashMap();
         context = new HashMap();
         context.put(ActionContext.SESSION, session);
-        context.put(ActionContext.PARAMETERS, params);
+        context.put(ActionContext.PARAMETERS, HttpParameters.create().build());
 
         request = new StrutsMockHttpServletRequest();
         httpSession = new StrutsMockHttpSession();

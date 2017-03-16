@@ -26,7 +26,7 @@ import com.opensymphony.xwork2.ActionProxy;
 import com.opensymphony.xwork2.ActionProxyFactory;
 import com.opensymphony.xwork2.config.ConfigurationException;
 import com.opensymphony.xwork2.inject.Container;
-import com.opensymphony.xwork2.util.LocalizedTextUtil;
+import com.opensymphony.xwork2.util.DefaultLocalizedTextProvider;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +35,7 @@ import org.apache.struts2.StrutsException;
 import org.apache.struts2.StrutsStatics;
 import org.apache.struts2.dispatcher.ApplicationMap;
 import org.apache.struts2.dispatcher.Dispatcher;
+import org.apache.struts2.dispatcher.HttpParameters;
 import org.apache.struts2.dispatcher.RequestMap;
 import org.apache.struts2.dispatcher.SessionMap;
 import org.apache.struts2.dispatcher.mapper.ActionMapper;
@@ -233,7 +234,6 @@ public class Jsr168Dispatcher extends GenericPortlet implements StrutsStatics {
         if (StringUtils.isEmpty(portletNamespace)) {
             portletNamespace = "";
         }
-        LocalizedTextUtil.addDefaultResourceBundle("org/apache/struts2/struts-messages");
 
         container = dispatcherUtils.getContainer();
         actionMapper = container.getInstance(ActionMapper.class);
@@ -389,14 +389,14 @@ public class Jsr168Dispatcher extends GenericPortlet implements StrutsStatics {
         extraContext.put(StrutsStatics.HTTP_RESPONSE, servletResponse);
         extraContext.put(StrutsStatics.SERVLET_CONTEXT, servletContext);
         // End dummy servlet objects
-        extraContext.put(ActionContext.PARAMETERS, parameterMap);
+        extraContext.put(ActionContext.PARAMETERS, HttpParameters.create(parameterMap).build());
         extraContext.put(ActionContext.SESSION, sessionMap);
         extraContext.put(ActionContext.APPLICATION, applicationMap);
 
         String defaultLocale = container.getInstance(String.class, StrutsConstants.STRUTS_LOCALE);
         Locale locale;
         if (defaultLocale != null) {
-            locale = LocalizedTextUtil.localeFromString(defaultLocale, request.getLocale());
+            locale = DefaultLocalizedTextProvider.localeFromString(defaultLocale, request.getLocale());
         } else {
             locale = request.getLocale();
         }

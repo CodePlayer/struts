@@ -17,9 +17,8 @@ package com.opensymphony.xwork2.interceptor;
 
 import com.opensymphony.xwork2.ActionContext;
 import com.opensymphony.xwork2.ActionInvocation;
+import com.opensymphony.xwork2.TextProvider;
 import com.opensymphony.xwork2.XWorkConstants;
-import com.opensymphony.xwork2.conversion.impl.InstantiatingNullHandler;
-import com.opensymphony.xwork2.conversion.impl.XWorkConverter;
 import com.opensymphony.xwork2.inject.Inject;
 import com.opensymphony.xwork2.security.AcceptedPatternsChecker;
 import com.opensymphony.xwork2.security.ExcludedPatternsChecker;
@@ -28,6 +27,8 @@ import com.opensymphony.xwork2.util.reflection.ReflectionContextState;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.struts2.dispatcher.Parameter;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -108,7 +109,7 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
         Object action = invocation.getAction();
         if (!(action instanceof NoParameters)) {
             ActionContext ac = invocation.getInvocationContext();
-            final Map<String, Object> parameters = retrieveParameters(ac);
+            HttpParameters parameters = retrieveParameters(ac);
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Setting params {}", getParameterLogMap(parameters));
@@ -139,7 +140,7 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
      * @param ac The action context
      * @return The parameter map to apply
      */
-    protected Map<String, Object> retrieveParameters(ActionContext ac) {
+    protected HttpParameters retrieveParameters(ActionContext ac) {
         return ac.getParameters();
     }
 
@@ -154,26 +155,24 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
      *                  In subclasses both retrieveParameters() and addParametersToContext() should be overridden.
      *                  </p>
      */
-    protected void addParametersToContext(ActionContext ac, Map<String, Object> newParams) {
+    protected void addParametersToContext(ActionContext ac, Map<String, ?> newParams) {
     }
 
-    protected void setParameters(final Object action, ValueStack stack, final Map<String, Object> parameters) {
-        Map<String, Object> params;
-        Map<String, Object> acceptableParameters;
+    protected void setParameters(final Object action, ValueStack stack, HttpParameters parameters) {
+        HttpParameters params;
+        Map<String, Parameter> acceptableParameters;
         if (ordered) {
-            params = new TreeMap<>(getOrderedComparator());
+            params = HttpParameters.create().withComparator(getOrderedComparator()).withParent(parameters).build();
             acceptableParameters = new TreeMap<>(getOrderedComparator());
-            params.putAll(parameters);
         } else {
-            params = new TreeMap<>(parameters);
+            params = HttpParameters.create().withParent(parameters).build();
             acceptableParameters = new TreeMap<>();
         }
 
-        for (Map.Entry<String, Object> entry : params.entrySet()) {
-            String name = entry.getKey();
-            Object value = entry.getValue();
+        for (String name : params.keySet()) {
+            Parameter parameter = params.get(name);
             if (isAcceptableParameter(name, action)) {
-                acceptableParameters.put(name, entry.getValue());
+                acceptableParameters.put(name, parameter);
             }
         }
 
@@ -201,11 +200,11 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
             accessValueStack.setExcludeProperties(excludedPatterns.getExcludedPatterns());
         }
 
-        for (Map.Entry<String, Object> entry : acceptableParameters.entrySet()) {
+        for (Map.Entry<String, Parameter> entry : acceptableParameters.entrySet()) {
             String name = entry.getKey();
-            Object value = entry.getValue();
+            Parameter value = entry.getValue();
             try {
-                newStack.setParameter(name, value);
+                newStack.setParameter(name, value.getObject());
             } catch (RuntimeException e) {
                 if (devMode) {
                     notifyDeveloperParameterException(action, name, e.getMessage());
@@ -220,15 +219,19 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
     }
 
     protected void notifyDeveloperParameterException(Object action, String property, String message) {
-        String developerNotification = LocalizedTextUtil.findText(ParametersInterceptor.class, "devmode.notification",
-                ActionContext.getContext().getLocale(), "Developer Notification:\n{0}",
-                new Object[]{
-                        "Unexpected Exception caught setting '" + property + "' on '" + action.getClass() + ": " + message
-                }
-        );
+        String developerNotification = "Unexpected Exception caught setting '" + property + "' on '" + action.getClass() + ": " + message;
+        if (action instanceof TextProvider) {
+            TextProvider tp = (TextProvider) action;
+            developerNotification = tp.getText("devmode.notification",
+                    "Developer Notification:\n{0}",
+                    new String[]{ developerNotification }
+            );
+        }
+
         LOG.error(developerNotification);
-        // see https://issues.apache.org/jira/browse/WW-4066
+
         if (action instanceof ValidationAware) {
+            // see https://issues.apache.org/jira/browse/WW-4066
             Collection<String> messages = ((ValidationAware) action).getActionMessages();
             messages.add(message);
             ((ValidationAware) action).setActionMessages(messages);
@@ -258,30 +261,16 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
         return rbCollator;
     }
 
-    protected String getParameterLogMap(Map<String, Object> parameters) {
+    protected String getParameterLogMap(HttpParameters parameters) {
         if (parameters == null) {
             return "NONE";
         }
 
         StringBuilder logEntry = new StringBuilder();
-        for (Map.Entry entry : parameters.entrySet()) {
-            logEntry.append(String.valueOf(entry.getKey()));
+        for (String name : parameters.keySet()) {
+            logEntry.append(String.valueOf(name));
             logEntry.append(" => ");
-            if (entry.getValue() instanceof Object[]) {
-                Object[] valueArray = (Object[]) entry.getValue();
-                logEntry.append("[ ");
-                if (valueArray.length > 0 ) {
-                    for (int indexA = 0; indexA < (valueArray.length - 1); indexA++) {
-                        Object valueAtIndex = valueArray[indexA];
-                        logEntry.append(String.valueOf(valueAtIndex));
-                        logEntry.append(", ");
-                    }
-                    logEntry.append(String.valueOf(valueArray[valueArray.length - 1]));
-                }
-                logEntry.append(" ] ");
-            } else {
-                logEntry.append(String.valueOf(entry.getValue()));
-            }
+            logEntry.append(parameters.get(name).getValue());
         }
 
         return logEntry.toString();
@@ -298,7 +287,7 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
 	protected boolean isWithinLengthLimit( String name ) {
         boolean matchLength = name.length() <= paramNameMaxLength;
         if (!matchLength) {
-            notifyDeveloper("Parameter [{}] is too long, allowed length is [{}]", name, String.valueOf(paramNameMaxLength));
+            LOG.debug("Parameter [{}] is too long, allowed length is [{}]", name, String.valueOf(paramNameMaxLength));
         }
         return matchLength;
 	}
@@ -308,25 +297,17 @@ public class ParametersInterceptor extends MethodFilterInterceptor {
         if (result.isAccepted()) {
             return true;
         }
-        notifyDeveloper("Parameter [{}] didn't match accepted pattern [{}]!", paramName, result.getAcceptedPattern());
+        LOG.debug("Parameter [{}] didn't match accepted pattern [{}]!", paramName, result.getAcceptedPattern());
         return false;
     }
 
     protected boolean isExcluded(String paramName) {
         ExcludedPatternsChecker.IsExcluded result = excludedPatterns.isExcluded(paramName);
         if (result.isExcluded()) {
-            notifyDeveloper("Parameter [{}] matches excluded pattern [{}]!", paramName, result.getExcludedPattern());
+            LOG.debug("Parameter [{}] matches excluded pattern [{}]!", paramName, result.getExcludedPattern());
             return true;
         }
         return false;
-    }
-
-    private void notifyDeveloper(String message, String... parameters) {
-        if (devMode) {
-            LOG.warn(message, parameters);
-        } else {
-            LOG.debug(message, parameters);
-        }
     }
 
     /**

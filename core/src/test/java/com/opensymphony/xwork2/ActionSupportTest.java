@@ -27,11 +27,18 @@ import java.util.*;
 public class ActionSupportTest extends XWorkTestCase {
 
     private ActionSupport as;
+    private MyActionSupport mas;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
         as = new ActionSupport();
+        container.inject(as);
+
+        ActionContext.getContext().setLocale(new Locale("da"));
+
+        mas = new MyActionSupport();
+        container.inject(mas);
     }
 
     @Override
@@ -64,7 +71,6 @@ public class ActionSupportTest extends XWorkTestCase {
         }
 
         assertEquals(Action.INPUT, as.input());
-        assertEquals(Action.SUCCESS, as.doDefault());
         assertEquals(Action.SUCCESS, as.execute());
         try {
             as.clone();
@@ -154,10 +160,7 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testMyActionSupport() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
-        assertEquals("santa", mas.doDefault());
+        assertEquals("santa", mas.execute());
         assertNotNull(mas.getTexts());
 
         assertEquals(false, mas.hasActionMessages());
@@ -166,9 +169,6 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testSimpleGetTexts() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
         checkGetTexts(mas);
     }
 
@@ -200,9 +200,6 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testGetTextsWithArgs() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
         assertEquals("Hello World", mas.getText("hello", "this is default", "from me")); // no args in bundle
         assertEquals("Hello World from me", mas.getText("hello.0", "this is default", "from me"));
         assertEquals("this is default", mas.getText("not.in.bundle", "this is default", "from me"));
@@ -212,9 +209,6 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testGetTextsWithListArgs() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
         List<Object> args = new ArrayList<>();
         args.add("Santa");
         args.add("loud");
@@ -237,9 +231,6 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testGetTextsWithArrayArgs() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
         String[] args = {"Santa", "loud"};
         assertEquals("Hello World", mas.getText("hello", "this is default", args)); // no args in bundle
         assertEquals("Hello World Santa", mas.getText("hello.0", "this is default", args)); // only 1 arg in bundle
@@ -261,7 +252,7 @@ public class ActionSupportTest extends XWorkTestCase {
 
     public void testGetTextsWithListAndStack() throws Exception {
         ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
+        MyActionSupport mas = container.inject(MyActionSupport.class);
 
         ValueStack stack = ActionContext.getContext().getValueStack();
 
@@ -279,7 +270,7 @@ public class ActionSupportTest extends XWorkTestCase {
 
     public void testGetTextsWithArrayAndStack() throws Exception {
         ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
+        MyActionSupport mas = container.inject(MyActionSupport.class);
 
         ValueStack stack = ActionContext.getContext().getValueStack();
 
@@ -294,16 +285,11 @@ public class ActionSupportTest extends XWorkTestCase {
     }
 
     public void testGetBundle() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
-
         ResourceBundle rb = ResourceBundle.getBundle(MyActionSupport.class.getName(), new Locale("da"));
         assertEquals(rb, mas.getTexts(MyActionSupport.class.getName()));
     }
 
     public void testFormattingSupport() throws Exception {
-        ActionContext.getContext().setLocale(new Locale("da"));
-        MyActionSupport mas = new MyActionSupport();
         ActionContext.getContext().getValueStack().push(mas);
 
         mas.setVal(234d);
@@ -317,6 +303,7 @@ public class ActionSupportTest extends XWorkTestCase {
         ActionContext.getContext().getConversionErrors().put("val", new String[]{"4567def"});
         ActionContext.getContext().setLocale(new Locale("da"));
         MyActionSupport mas = new MyActionSupport();
+        container.inject(mas);
         ActionContext.getContext().getValueStack().push(mas);
 
         mas.setVal(234d);
@@ -326,12 +313,12 @@ public class ActionSupportTest extends XWorkTestCase {
         assertEquals("4567def", formatted);
     }
 
-    private class MyActionSupport extends ActionSupport {
+    public static class MyActionSupport extends ActionSupport {
 
         private Double val;
 
         @Override
-        public String doDefault() throws Exception {
+        public String execute() throws Exception {
             return "santa";
         }
 

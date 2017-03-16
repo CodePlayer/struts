@@ -18,7 +18,9 @@ package com.opensymphony.xwork2.config.impl;
 import com.opensymphony.xwork2.*;
 import com.opensymphony.xwork2.config.*;
 import com.opensymphony.xwork2.config.entities.*;
+import com.opensymphony.xwork2.config.providers.EnvsValueSubstitutor;
 import com.opensymphony.xwork2.config.providers.InterceptorBuilder;
+import com.opensymphony.xwork2.config.providers.ValueSubstitutor;
 import com.opensymphony.xwork2.conversion.*;
 import com.opensymphony.xwork2.conversion.impl.*;
 import com.opensymphony.xwork2.factory.*;
@@ -36,6 +38,7 @@ import ognl.PropertyAccessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.struts2.StrutsConstants;
 
 import java.util.*;
 
@@ -50,7 +53,6 @@ public class DefaultConfiguration implements Configuration {
 
     protected static final Logger LOG = LogManager.getLogger(DefaultConfiguration.class);
 
-
     // Programmatic Action Configurations
     protected Map<String, PackageConfig> packageContexts = new LinkedHashMap<>();
     protected RuntimeConfiguration runtimeConfiguration;
@@ -63,7 +65,7 @@ public class DefaultConfiguration implements Configuration {
     ObjectFactory objectFactory;
 
     public DefaultConfiguration() {
-        this("xwork");
+        this(Container.DEFAULT_NAME);
     }
 
     public DefaultConfiguration(String defaultBeanName) {
@@ -243,6 +245,8 @@ public class DefaultConfiguration implements Configuration {
         builder.factory(ReflectionProvider.class, OgnlReflectionProvider.class, Scope.SINGLETON);
         builder.factory(ValueStackFactory.class, OgnlValueStackFactory.class, Scope.SINGLETON);
 
+        builder.factory(LocalizedTextProvider.class, DefaultLocalizedTextProvider.class, Scope.SINGLETON);
+
         builder.factory(XWorkConverter.class, Scope.SINGLETON);
         builder.factory(ConversionPropertiesProcessor.class, DefaultConversionPropertiesProcessor.class, Scope.SINGLETON);
         builder.factory(ConversionFileProcessor.class, DefaultConversionFileProcessor.class, Scope.SINGLETON);
@@ -259,16 +263,22 @@ public class DefaultConfiguration implements Configuration {
 
         builder.factory(TextParser.class, OgnlTextParser.class, Scope.SINGLETON);
         builder.factory(TextProvider.class, "system", DefaultTextProvider.class, Scope.SINGLETON);
+        builder.factory(TextProvider.class, TextProviderSupport.class, Scope.SINGLETON);
+        builder.factory(LocaleProvider.class, DefaultLocaleProvider.class, Scope.SINGLETON);
 
         builder.factory(ObjectTypeDeterminer.class, DefaultObjectTypeDeterminer.class, Scope.SINGLETON);
         builder.factory(PropertyAccessor.class, CompoundRoot.class.getName(), CompoundRootAccessor.class, Scope.SINGLETON);
         builder.factory(OgnlUtil.class, Scope.SINGLETON);
 
+        builder.factory(ValueSubstitutor.class, EnvsValueSubstitutor.class, Scope.SINGLETON);
+
         builder.constant(XWorkConstants.DEV_MODE, "false");
+        builder.constant(StrutsConstants.STRUTS_DEVMODE, "false");
         builder.constant(XWorkConstants.LOG_MISSING_PROPERTIES, "false");
         builder.constant(XWorkConstants.ENABLE_OGNL_EVAL_EXPRESSION, "false");
         builder.constant(XWorkConstants.ENABLE_OGNL_EXPRESSION_CACHE, "true");
         builder.constant(XWorkConstants.RELOAD_XML_CONFIGURATION, "false");
+        builder.constant(StrutsConstants.STRUTS_I18N_RELOAD, "false");
 
         return builder.create(true);
     }
@@ -370,11 +380,20 @@ public class DefaultConfiguration implements Configuration {
             }
         }
 
+        String methodRegex = container.getInstance(String.class, StrutsConstants.STRUTS_SMI_METHOD_REGEX);
+        if (methodRegex == null) {
+            methodRegex = ActionConfig.DEFAULT_METHOD_REGEX;
+        }
+
+        LOG.debug("Using pattern [{}] to match allowed methods when SMI is disabled!", methodRegex);
+
         return new ActionConfig.Builder(baseConfig)
             .addParams(params)
             .addResultConfigs(results)
             .defaultClassName(packageContext.getDefaultClassRef())  // fill in default if non class has been provided
             .interceptors(interceptors)
+            .setStrictMethodInvocation(packageContext.isStrictMethodInvocation())
+            .setDefaultMethodRegex(methodRegex)
             .addExceptionMappings(packageContext.getAllExceptionMappingConfigs())
             .build();
     }

@@ -19,12 +19,9 @@ import com.opensymphony.xwork2.inject.Container;
 import com.opensymphony.xwork2.inject.Inject;
 import com.opensymphony.xwork2.interceptor.ValidationAware;
 import com.opensymphony.xwork2.util.ValueStack;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.Serializable;
 import java.util.*;
-
 
 /**
  * Provides a default implementation for the most common actions.
@@ -32,12 +29,11 @@ import java.util.*;
  */
 public class ActionSupport implements Action, Validateable, ValidationAware, TextProvider, LocaleProvider, Serializable {
 
-    protected static Logger LOG = LogManager.getLogger(ActionSupport.class);
-
     private final ValidationAwareSupport validationAware = new ValidationAwareSupport();
 
     private transient TextProvider textProvider;
-    private Container container;
+
+    protected Container container;
 
     public void setActionErrors(Collection<String> errorMessages) {
         validationAware.setActionErrors(errorMessages);
@@ -63,14 +59,19 @@ public class ActionSupport implements Action, Validateable, ValidationAware, Tex
         return validationAware.getFieldErrors();
     }
 
+    @Override
     public Locale getLocale() {
-        ActionContext ctx = ActionContext.getContext();
-        if (ctx != null) {
-            return ctx.getLocale();
-        } else {
-        	LOG.debug("Action context not initialized");
-            return null;
-        }
+        return container.getInstance(LocaleProvider.class).getLocale();
+    }
+
+    @Override
+    public boolean isValidLocaleString(String localeStr) {
+        return container.getInstance(LocaleProvider.class).isValidLocaleString(localeStr);
+    }
+
+    @Override
+    public boolean isValidLocale(Locale locale) {
+        return container.getInstance(LocaleProvider.class).isValidLocale(locale);
     }
 
     public boolean hasKey(String key) {
@@ -154,10 +155,6 @@ public class ActionSupport implements Action, Validateable, ValidationAware, Tex
 
     public String input() throws Exception {
         return INPUT;
-    }
-
-    public String doDefault() throws Exception {
-        return SUCCESS;
     }
 
     /**
@@ -277,11 +274,8 @@ public class ActionSupport implements Action, Validateable, ValidationAware, Tex
      */
     private TextProvider getTextProvider() {
         if (textProvider == null) {
-            TextProviderFactory tpf = new TextProviderFactory();
-            if (container != null) {
-                container.inject(tpf);
-            }
-            textProvider = tpf.createInstance(getClass(), this);
+            TextProviderFactory tpf = container.inject(TextProviderFactory.class);
+            textProvider = tpf.createInstance(getClass());
         }
         return textProvider;
     }

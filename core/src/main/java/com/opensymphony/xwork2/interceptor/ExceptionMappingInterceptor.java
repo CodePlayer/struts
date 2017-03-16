@@ -19,8 +19,8 @@ import com.opensymphony.xwork2.ActionInvocation;
 import com.opensymphony.xwork2.config.entities.ExceptionMappingConfig;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.apache.struts2.dispatcher.HttpParameters;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,7 +153,7 @@ import java.util.Map;
  */
 public class ExceptionMappingInterceptor extends AbstractInterceptor {
     
-    protected static final Logger LOG = LogManager.getLogger(ExceptionMappingInterceptor.class);
+    private static final Logger LOG = LogManager.getLogger(ExceptionMappingInterceptor.class);
 
     protected Logger categoryLogger;
     protected boolean logEnabled = false;
@@ -198,9 +198,10 @@ public class ExceptionMappingInterceptor extends AbstractInterceptor {
             List<ExceptionMappingConfig> exceptionMappings = invocation.getProxy().getConfig().getExceptionMappings();
             ExceptionMappingConfig mappingConfig = this.findMappingFromExceptions(exceptionMappings, e);
             if (mappingConfig != null && mappingConfig.getResult()!=null) {
-                Map parameterMap = mappingConfig.getParams();
+                Map<String, String> mappingParams = mappingConfig.getParams();
                 // create a mutable HashMap since some interceptors will remove parameters, and parameterMap is immutable
-                invocation.getInvocationContext().setParameters(new HashMap<String, Object>(parameterMap));
+                HttpParameters parameters = HttpParameters.create(mappingParams).build();
+                invocation.getInvocationContext().setParameters(parameters);
                 result = mappingConfig.getResult();
                 publishException(invocation, new ExceptionHolder(e));
             } else {

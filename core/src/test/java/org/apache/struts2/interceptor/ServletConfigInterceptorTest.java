@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.struts2.StrutsInternalTestCase;
 import org.apache.struts2.StrutsStatics;
 import org.apache.struts2.interceptor.servlet.ServletPrincipalProxy;
+import org.apache.struts2.dispatcher.HttpParameters;
 import org.apache.struts2.util.ServletContextAware;
 
 import static org.easymock.EasyMock.*;
@@ -83,14 +84,30 @@ public class ServletConfigInterceptorTest extends StrutsInternalTestCase {
     }
 
     public void testParameterAware() throws Exception {
-        ParameterAware mock = (ParameterAware) createMock(ParameterAware.class);
+        ParameterAware mock = createMock(ParameterAware.class);
 
         MockActionInvocation mai = createActionInvocation(mock);
 
-        Map<String, Object> param = new HashMap<String, Object>();
+        HttpParameters param = HttpParameters.create().build();
         mai.getInvocationContext().setParameters(param);
 
-        mock.setParameters((Map)param);
+        param.applyParameters(mock);
+        expectLastCall().times(1);
+
+        replay(mock);
+        interceptor.intercept(mai);
+        verify(mock);
+    }
+
+    public void testHttpParametersAware() throws Exception {
+        HttpParametersAware mock = createMock(HttpParametersAware.class);
+
+        MockActionInvocation mai = createActionInvocation(mock);
+
+        HttpParameters param = HttpParameters.create().build();
+        mai.getInvocationContext().setParameters(param);
+
+        mock.setParameters(param);
         expectLastCall().times(1);
 
         replay(mock);
@@ -121,7 +138,7 @@ public class ServletConfigInterceptorTest extends StrutsInternalTestCase {
 
         Map<String, Object> app = new HashMap<String, Object>();
         mai.getInvocationContext().setApplication(app);
-        
+
         mock.setApplication(app);
         expectLastCall().times(1);
 
@@ -144,7 +161,7 @@ public class ServletConfigInterceptorTest extends StrutsInternalTestCase {
 
         mock.setPrincipalProxy(anyObject(ServletPrincipalProxy.class)); // less strick match is needed for this unit test to be conducted using mocks
         expectLastCall().times(1);
-        
+
         replay(mock);
         interceptor.intercept(mai);
         verify(mock);
@@ -179,10 +196,10 @@ public class ServletConfigInterceptorTest extends StrutsInternalTestCase {
 
         MockServletContext ctx = new MockServletContext();
         mai.getInvocationContext().put(StrutsStatics.SERVLET_CONTEXT, ctx);
-        
+
         mock.setServletContext((ServletContext) ctx);
         expectLastCall().times(1);
-        
+
         replay(mock);
         interceptor.intercept(mai);
         verify(mock);

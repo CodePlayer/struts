@@ -25,6 +25,7 @@ import com.opensymphony.xwork2.ActionInvocation;
 import com.opensymphony.xwork2.ActionProxy;
 import junit.textui.TestRunner;
 import org.apache.struts2.StrutsStatics;
+import org.apache.struts2.dispatcher.HttpParameters;
 import org.apache.struts2.portlet.PortletConstants;
 import org.apache.struts2.portlet.PortletPhase;
 import org.jmock.Mock;
@@ -68,12 +69,11 @@ public class PortletResultTest extends MockObjectTestCase implements StrutsStati
         mockCtx = mock(PortletContext.class);
         mockProxy = mock(ActionProxy.class);
 
-        Map<String, String[]> paramMap = new HashMap<String, String[]>();
         Map<String, Object> sessionMap = new HashMap<String, Object>();
 
         Map<String, Object> context = new HashMap<String, Object>();
         context.put(SESSION, sessionMap);
-        context.put(PARAMETERS, paramMap);
+        context.put(PARAMETERS, HttpParameters.create().build());
         context.put(STRUTS_PORTLET_CONTEXT, mockCtx.proxy());
 
         ActionContext.setContext(new ActionContext(context));

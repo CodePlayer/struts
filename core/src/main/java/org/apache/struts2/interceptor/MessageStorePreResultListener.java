@@ -20,12 +20,13 @@
 package org.apache.struts2.interceptor;
 
 import com.opensymphony.xwork2.ActionInvocation;
+import com.opensymphony.xwork2.config.entities.ResultConfig;
 import com.opensymphony.xwork2.interceptor.PreResultListener;
 import com.opensymphony.xwork2.interceptor.ValidationAware;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.struts2.ServletActionContext;
-import org.apache.struts2.result.ServletRedirectResult;
+import org.apache.struts2.result.Redirectable;
 
 import java.util.Map;
 
@@ -34,26 +35,25 @@ import java.util.Map;
  * just before result will be executed. It must be done that way as after result will be executed
  * HttpSession cannot be modified (response was already sent to browser).
  */
-class MessageStorePreResultListener implements PreResultListener {
+public class MessageStorePreResultListener implements PreResultListener {
 
     private static final Logger LOG = LogManager.getLogger(MessageStorePreResultListener.class);
 
-    private MessageStoreInterceptor interceptor;
+    protected MessageStoreInterceptor interceptor;
 
-    public MessageStorePreResultListener(MessageStoreInterceptor interceptor) {
+    public void init(MessageStoreInterceptor interceptor) {
         this.interceptor = interceptor;
     }
-
     @Override
     public void beforeResult(ActionInvocation invocation, String resultCode) {
 
-        boolean isCommitted = ServletActionContext.getResponse().isCommitted();
+        boolean isCommitted = isCommitted();
         if (isCommitted) {
             LOG.trace("Response was already committed, cannot store messages!");
             return;
         }
 
-        boolean isInvalidated = ServletActionContext.getRequest().getSession(false) == null;
+        boolean isInvalidated = isInvalidated();
         if (isInvalidated) {
             LOG.trace("Session was invalidated or never created, cannot store messages!");
             return;
@@ -67,12 +67,7 @@ class MessageStorePreResultListener implements PreResultListener {
 
         String reqOperationMode = interceptor.getRequestOperationMode(invocation);
 
-        boolean isRedirect = false;
-        try {
-            isRedirect = invocation.getResult() instanceof ServletRedirectResult;
-        } catch (Exception e) {
-            LOG.warn("Cannot read result!", e);
-        }
+        boolean isRedirect = isRedirect(invocation, resultCode);
 
         if (MessageStoreInterceptor.STORE_MODE.equalsIgnoreCase(reqOperationMode) ||
                 MessageStoreInterceptor.STORE_MODE.equalsIgnoreCase(interceptor.getOperationModel()) ||
@@ -92,4 +87,26 @@ class MessageStorePreResultListener implements PreResultListener {
             }
         }
     }
+
+    protected boolean isCommitted() {
+        return ServletActionContext.getResponse().isCommitted();
+    }
+
+    protected boolean isInvalidated() {
+        return ServletActionContext.getRequest().getSession(false) == null;
+    }
+
+    protected boolean isRedirect(ActionInvocation invocation, String resultCode) {
+        boolean isRedirect = false;
+        try {
+            ResultConfig resultConfig = invocation.getProxy().getConfig().getResults().get(resultCode);
+            if (resultConfig != null) {
+                isRedirect = Redirectable.class.isAssignableFrom(Class.forName(resultConfig.getClassName()));
+            }
+        } catch (Exception e) {
+            LOG.warn("Cannot read result!", e);
+        }
+        return isRedirect;
+    }
+
 }

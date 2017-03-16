@@ -21,15 +21,19 @@ import com.opensymphony.xwork2.XWorkConstants;
 import com.opensymphony.xwork2.config.entities.ActionConfig;
 import com.opensymphony.xwork2.config.entities.Parameterizable;
 import com.opensymphony.xwork2.inject.Inject;
-import com.opensymphony.xwork2.util.*;
+import com.opensymphony.xwork2.util.ClearableValueStack;
+import com.opensymphony.xwork2.LocalizedTextProvider;
+import com.opensymphony.xwork2.util.TextParseUtil;
+import com.opensymphony.xwork2.util.ValueStack;
+import com.opensymphony.xwork2.util.ValueStackFactory;
 import com.opensymphony.xwork2.util.reflection.ReflectionContextState;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.TreeMap;
 
 
 /**
@@ -89,6 +93,7 @@ public class StaticParametersInterceptor extends AbstractInterceptor {
     private static final Logger LOG = LogManager.getLogger(StaticParametersInterceptor.class);
 
     private ValueStackFactory valueStackFactory;
+    private LocalizedTextProvider localizedTextProvider;
 
     @Inject
     public void setValueStackFactory(ValueStackFactory valueStackFactory) {
@@ -98,7 +103,12 @@ public class StaticParametersInterceptor extends AbstractInterceptor {
     @Inject(XWorkConstants.DEV_MODE)
     public void setDevMode(String mode) {
         devMode = BooleanUtils.toBoolean(mode);
-    }    
+    }
+
+    @Inject
+    public void setLocalizedTextProvider(LocalizedTextProvider localizedTextProvider) {
+        this.localizedTextProvider = localizedTextProvider;
+    }
 
     public void setParse(String value) {
         this.parse = BooleanUtils.toBoolean(value);
@@ -164,7 +174,8 @@ public class StaticParametersInterceptor extends AbstractInterceptor {
                         newStack.setValue(entry.getKey(), val);
                     } catch (RuntimeException e) {
                         if (devMode) {
-                            String developerNotification = LocalizedTextUtil.findText(ParametersInterceptor.class, "devmode.notification", ActionContext.getContext().getLocale(), "Developer Notification:\n{0}", new Object[]{
+
+                            String developerNotification = localizedTextProvider.findText(ParametersInterceptor.class, "devmode.notification", ActionContext.getContext().getLocale(), "Developer Notification:\n{0}", new Object[]{
                                     "Unexpected Exception caught setting '" + entry.getKey() + "' on '" + action.getClass() + ": " + e.getMessage()
                             });
                             LOG.error(developerNotification);
@@ -205,35 +216,31 @@ public class StaticParametersInterceptor extends AbstractInterceptor {
 
     /**
      * Adds the parameters into context's ParameterMap.
-     * As default, static parameters will not overwrite existing paramaters from other sources.
+     * As default, static parameters will not overwrite existing parameters from other sources.
      * If you want the static parameters as successor over already existing parameters, set overwrite to <tt>true</tt>.
      *
      * @param ac        The action context
      * @param newParams The parameter map to apply
      */
     protected void addParametersToContext(ActionContext ac, Map<String, ?> newParams) {
-        Map<String, Object> previousParams = ac.getParameters();
+        HttpParameters previousParams = ac.getParameters();
 
-        Map<String, Object> combinedParams;
-        if ( overwrite ) {
+        HttpParameters.Builder combinedParams = HttpParameters.create();
+        if (overwrite) {
             if (previousParams != null) {
-                combinedParams = new TreeMap<>(previousParams);
-            } else {
-                combinedParams = new TreeMap<>();
+                combinedParams = combinedParams.withParent(previousParams);
             }
-            if ( newParams != null) {
-                combinedParams.putAll(newParams);
+            if (newParams != null) {
+                combinedParams = combinedParams.withExtraParams(newParams);
             }
         } else {
             if (newParams != null) {
-                combinedParams = new TreeMap<>(newParams);
-            } else {
-                combinedParams = new TreeMap<>();
+                combinedParams = combinedParams.withExtraParams(newParams);
             }
-            if ( previousParams != null) {
-                combinedParams.putAll(previousParams);
+            if (previousParams != null) {
+                combinedParams = combinedParams.withParent(previousParams);
             }
         }
-        ac.setParameters(combinedParams);
+        ac.setParameters(combinedParams.build());
     }
 }

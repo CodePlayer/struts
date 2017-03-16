@@ -443,8 +443,10 @@ public class PackageBasedActionConfigBuilder implements ActionConfigBuilder {
         });
 
 
-        urlSet = urlSet.excludeJavaExtDirs();
-        urlSet = urlSet.excludeJavaEndorsedDirs();
+        urlSet = urlSet.excludeJavaExtDirs()
+                    .excludeJavaEndorsedDirs()
+                    .excludeUserExtensionsDir();
+
         try {
         	urlSet = urlSet.excludeJavaHome();
         } catch (NullPointerException e) {
@@ -930,7 +932,7 @@ public class PackageBasedActionConfigBuilder implements ActionConfigBuilder {
             actionConfig.addAllowedMethod(allowedMethods);
             actionConfig.addAllowedMethod(pkgCfg.getGlobalAllowedMethods());
         } else {
-            actionConfig.addAllowedMethod(ActionConfig.REGEX_WILDCARD);
+            actionConfig.addAllowedMethod(ActionConfig.WILDCARD);
         }
 
         if (LOG.isDebugEnabled()) {

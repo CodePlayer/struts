@@ -20,6 +20,7 @@ import com.opensymphony.xwork2.util.TextParseUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.struts2.dispatcher.HttpParameters;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -107,8 +108,7 @@ public class ParameterFilterInterceptor extends AbstractInterceptor {
     @Override
     public String intercept(ActionInvocation invocation) throws Exception {
 
-        Map<String, Object> parameters = invocation.getInvocationContext().getParameters();
-        HashSet<String> paramsToRemove = new HashSet<>();
+        HttpParameters parameters = invocation.getInvocationContext().getParameters();
 
         Map<String, Boolean> includesExcludesMap = getIncludesExcludesMap();
 
@@ -116,22 +116,19 @@ public class ParameterFilterInterceptor extends AbstractInterceptor {
             boolean currentAllowed = !isDefaultBlock();
 
             for (String currRule : includesExcludesMap.keySet()) {
-                if (param.startsWith(currRule)
-                        && (param.length() == currRule.length()
-                        || isPropertySeparator(param.charAt(currRule.length())))) {
-                    currentAllowed = includesExcludesMap.get(currRule).booleanValue();
+                if (param.startsWith(currRule) &&
+                    (param.length() == currRule.length() || isPropertySeparator(param.charAt(currRule.length())))
+                ) {
+                    currentAllowed = includesExcludesMap.get(currRule);
                 }
             }
             if (!currentAllowed) {
-                paramsToRemove.add(param);
+                LOG.debug("Removing param: {}", param);
+                parameters = parameters.remove(param);
             }
         }
 
-        LOG.debug("Params to remove: {}", paramsToRemove);
-
-        for (Object aParamsToRemove : paramsToRemove) {
-            parameters.remove(aParamsToRemove);
-        }
+        invocation.getInvocationContext().setParameters(parameters);
 
         return invocation.invoke();
     }
@@ -142,7 +139,7 @@ public class ParameterFilterInterceptor extends AbstractInterceptor {
      * @param c the char
      * @return <tt>true</tt>, if char is property separator, <tt>false</tt> otherwise.
      */
-    private static boolean isPropertySeparator(char c) {
+    private boolean isPropertySeparator(char c) {
         return c == '.' || c == '(' || c == '[';
     }
 
